@@ -35,6 +35,7 @@ import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirebase, useUser } from '@/firebase';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch, query, orderBy, where } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
@@ -90,6 +91,9 @@ import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 =======
 import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where } from 'firebase/firestore';
+=======
+import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, addDoc } from 'firebase/firestore';
+>>>>>>> deacb7a (Os bancos não estão ficando salvos, poderia corrigir para mim?)
 import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
 import { useMemoFirebase } from '@/firebase/provider';
@@ -219,7 +223,7 @@ export default function BankProposalView() {
 
   // --- Event Handlers ---
   const handleAddBank = async () => {
-    if (newBankName.trim() === '' || !banksMasterCollectionRef || !firestore) {
+    if (newBankName.trim() === '' || !banksMasterCollectionRef || !firestore || !userChecklistCollectionRef) {
         toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
         return;
     }
@@ -231,16 +235,32 @@ export default function BankProposalView() {
         return;
     }
 
-    const newBank: Omit<BankMaster, 'id'> = {
+    const newBankData: Omit<BankMaster, 'id'> = {
       name: newBankName.trim(),
       category: 'Custom',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
-    addDocumentNonBlocking(banksMasterCollectionRef, newBank);
-    setNewBankName('');
-    toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado à lista mestre.` });
+    try {
+        const docRef = await addDoc(banksMasterCollectionRef, newBankData);
+        const userChecklistRef = doc(userChecklistCollectionRef, docRef.id);
+        const newChecklistItem: Omit<BankChecklistStatus, 'id'> = {
+            name: newBankData.name,
+            status: 'Pendente',
+            insertionDate: null,
+            updatedAt: serverTimestamp(),
+        };
+        // Use non-blocking set which also handles errors
+        setDocumentNonBlocking(userChecklistRef, newChecklistItem, {merge: false});
+
+        setNewBankName('');
+        toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
+
+    } catch (error) {
+        console.error("Error adding bank:", error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível adicionar o banco.' });
+    }
   };
 
   const handleToggleStatus = (bankId: string) => {

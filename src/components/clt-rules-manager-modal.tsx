@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -139,7 +138,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
   const loadImage = (url: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
-        if (!url || typeof url !== 'string') {
+        if (!url || typeof url !== 'string' || !url.startsWith('http')) {
             return reject(new Error('URL inválida ou ausente.'));
         }
         const img = new window.Image();
@@ -194,19 +193,32 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 renderHeight = maxBoxHeight;
                 renderWidth = maxBoxHeight * aspectRatio;
             }
+            if (renderWidth > maxBoxWidth) {
+                renderWidth = maxBoxWidth;
+                renderHeight = maxBoxWidth / aspectRatio;
+            }
             
             const x = (pageWidth - renderWidth) / 2;
 
             try {
-                docPDF.addImage(logoImage, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
+                const format = logoImage.src.toLowerCase().endsWith('.png') ? 'PNG' : 'JPEG';
+                docPDF.addImage(logoImage, format, x, startY, renderWidth, renderHeight, undefined, 'FAST');
                 startY += renderHeight + 5;
             } catch (e) {
                 console.error("Error adding image to PDF:", e);
+                 // If image fails, draw text
+                docPDF.setFontSize(20);
+                docPDF.text(`${bank.name}`, pageWidth / 2, startY, { align: 'center' });
+                startY += 10;
             }
+        } else {
+             docPDF.setFontSize(20);
+             docPDF.text(`${bank.name}`, pageWidth / 2, startY, { align: 'center' });
+             startY += 10;
         }
-        
-        docPDF.setFontSize(20);
-        docPDF.text(`Regras CLT - ${bank.name}`, pageWidth / 2, startY, { align: 'center' });
+
+        docPDF.setFontSize(16);
+        docPDF.text(`Regras CLT`, pageWidth / 2, startY, { align: 'center' });
       };
 
       const addFooter = (data: any) => {
@@ -225,7 +237,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             addHeader(data);
             addFooter(data);
         },
-        margin: { top: logoImage ? 55 : 30 }
+        margin: { top: 55 }
       });
       
       docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);

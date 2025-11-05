@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -76,9 +75,9 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
   const loadImage = (url: string): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
-          if (!url || typeof url !== 'string') {
-              return reject(new Error('URL inválida ou ausente.'));
-          }
+        if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+          return reject(new Error('URL inválida ou ausente.'));
+        }
           const img = new window.Image();
           img.crossOrigin = 'Anonymous';
           img.onload = () => resolve(img);
@@ -99,47 +98,49 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
     
-    const allBanksData: BankDataForPDF[] = [];
-    const loadDataPromises: Promise<void>[] = [];
+    // Step 1: Fetch all rules and prepare data structure
+    const banksAndRulesPromises = banks.map(async (bank) => {
+        const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
+        const rulesSnapshot = await getDocs(cltRulesCollectionRef);
+        const rules: Record<string, string> = {};
+        rulesSnapshot.docs.forEach(doc => {
+            const rule = doc.data() as CLTRule;
+            rules[rule.ruleName] = rule.ruleValue;
+        });
+        return { bankName: bank.name, rules, logoUrl: bank.logoUrl };
+    });
 
-    for (const bank of banks) {
-        const promise = (async () => {
-            const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
-            const rulesSnapshot = await getDocs(cltRulesCollectionRef);
-            const rulesMap: Record<string, string> = {};
-            rulesSnapshot.docs.forEach(doc => {
-                const rule = doc.data() as CLTRule;
-                rulesMap[rule.ruleName] = rule.ruleValue;
-            });
+    const banksAndRules = await Promise.all(banksAndRulesPromises);
 
-            const bankData: BankDataForPDF = { bankName: bank.name, rules: rulesMap, logoUrl: bank.logoUrl };
-            
-            if (bank.logoUrl) {
-                try {
-                    bankData.logoImage = await loadImage(bank.logoUrl);
-                } catch (e) {
-                    console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
-                    toast({
-                      variant: 'destructive',
-                      title: 'Erro ao carregar logo',
-                      description: `Não foi possível carregar a logo para o banco ${bank.name}.`,
-                    });
-                }
-            }
-            allBanksData.push(bankData);
-        })();
-        loadDataPromises.push(promise);
-    }
-    
-    await Promise.all(loadDataPromises);
+    // Step 2: Load all images
+    const imageLoadingPromises = banksAndRules.map(bank => 
+        bank.logoUrl ? loadImage(bank.logoUrl)
+                      .then(img => ({ ...bank, logoImage: img }))
+                      .catch(e => {
+                          console.error(`Failed to load image for ${bank.bankName}:`, e);
+                          toast({
+                            variant: "destructive",
+                            title: `Erro ao carregar logo`,
+                            description: `Não foi possível carregar a logo para o banco ${bank.bankName}.`,
+                          });
+                          return { ...bank, logoImage: undefined }; // Continue without image
+                      }) 
+                    : Promise.resolve({ ...bank, logoImage: undefined })
+    );
+
+    const allBanksData = await Promise.all(imageLoadingPromises);
 
     allBanksData.sort((a, b) => a.bankName.localeCompare(b.bankName));
 
+    // Step 3: Generate PDF with loaded data
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
 
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
-        const row : any[] = [{ content: bankData.bankName, styles: { halign: 'center', valign: 'bottom' } }];
+        const row : any[] = [{ 
+            content: bankData.logoImage ? '' : bankData.bankName, 
+            styles: { halign: 'center', valign: 'middle' } 
+        }];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
@@ -172,32 +173,42 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 if (bankData && bankData.logoImage) {
                     const img = bankData.logoImage;
                     const cell = data.cell;
-                    
                     const cellPadding = 2;
                     const maxImgWidth = cell.width - (2 * cellPadding);
                     const maxImgHeight = 20;
-                    
+
+                    let imgWidth, imgHeight;
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
 
-                    let imgWidth = maxImgWidth;
-                    let imgHeight = imgWidth / aspectRatio;
+                    if (aspectRatio > 1) { // Wider than tall
+                        imgWidth = maxImgWidth;
+                        imgHeight = imgWidth / aspectRatio;
+                    } else { // Taller than wide or square
+                        imgHeight = maxImgHeight;
+                        imgWidth = imgHeight * aspectRatio;
+                    }
 
                     if (imgHeight > maxImgHeight) {
                         imgHeight = maxImgHeight;
                         imgWidth = imgHeight * aspectRatio;
                     }
-
-                    const x = cell.x + (cell.width - imgWidth) / 2;
-                    const y = cell.y + cellPadding;
-                    
-                    try {
-                        doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                    } catch (e) {
-                        console.error(`Failed to add image for ${bankData.bankName}:`, e);
+                    if (imgWidth > maxImgWidth) {
+                        imgWidth = maxImgWidth;
+                        imgHeight = imgWidth / aspectRatio;
                     }
 
-                    if (cell.textPos) {
-                      cell.textPos.y = y + imgHeight + 4;
+                    const x = cell.x + (cell.width - imgWidth) / 2;
+                    const y = cell.y + (cell.height - imgHeight) / 2;
+                    
+                    try {
+                        const format = img.src.toLowerCase().endsWith('.png') ? 'PNG' : 'JPEG';
+                        doc.addImage(img, format, x, y, imgWidth, imgHeight, undefined, 'FAST');
+                    } catch (e) {
+                        console.error(`Failed to add image for ${bankData.bankName}:`, e);
+                        // If addImage fails, draw text as a fallback
+                        const text = bankData.bankName;
+                        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
+                        doc.text(text, cell.x + (cell.width - textWidth) / 2, cell.y + cell.height / 2, { baseline: 'middle' });
                     }
                 }
             }

@@ -35,6 +35,7 @@ export interface BankMaster {
   id: string;
   name: string;
 <<<<<<< HEAD
+<<<<<<< HEAD
   logoUrl: string;
   categories: BankCategory[];
   promotoraId?: string; // Optional: ID of the associated Promotora
@@ -69,6 +70,9 @@ export interface BankStatusDocument {
 =======
   logoUrl?: string;
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
+=======
+  logoUrl: string;
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
   category: BankCategory;
   status: 'Pendente' | 'Concluído';
   insertionDate: Timestamp | null;
@@ -86,8 +90,6 @@ export interface BankMaster {
 // Represents the user-specific checklist status for a bank
 export interface BankChecklistStatus {
   id: string; // This ID should correspond to the BankMaster ID
-  name: string; // Denormalized for easy display
-  logoUrl?: string; // Denormalized for easy display
   status: 'Pendente' | 'Concluído';
   insertionDate: Timestamp | null;
   updatedAt: Timestamp;

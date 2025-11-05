@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { BankChecklistStatus, BankMaster } from '@/lib/types';
+<<<<<<< HEAD
 import { CheckCircle, History, Landmark, PlusCircle } from 'lucide-react';
 >>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
 import { useToast } from "@/hooks/use-toast";
@@ -94,6 +95,14 @@ export default function BankProposalView() {
   const [bankStatuses, setBankStatuses] = useState<BankStatus[]>([]);
 =======
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
+=======
+import { CheckCircle, History, Landmark, PlusCircle, Edit } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { format, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useCollection, useFirebase, useUser, useDoc } from '@/firebase';
+import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, addDoc, orderBy, updateDoc, runTransaction } from 'firebase/firestore';
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 =======
 import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where } from 'firebase/firestore';
@@ -110,8 +119,9 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocki
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
 import { useMemoFirebase } from '@/firebase/provider';
+import EditBankModal from './edit-bank-modal';
 
-type CombinedBankStatus = BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
+type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
 export default function BankProposalView() {
   const { toast } = useToast();
@@ -131,6 +141,13 @@ export default function BankProposalView() {
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
   const [newBankName, setNewBankName] = useState('');
   const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedBank, setSelectedBank] = useState<BankMaster | null>(null);
+
+  // User role
+  const userProfileRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+  const { data: userProfile } = useDoc(userProfileRef);
+  const isMaster = userProfile?.role === 'master';
 
   // Master list of all banks, ordered by name
   const banksMasterCollectionRef = useMemoFirebase(
@@ -151,10 +168,9 @@ export default function BankProposalView() {
   // --- Effects ---
   // Effect to create checklist items for new banks
   useEffect(() => {
-    if (!firestore || !user || !masterBanks) return;
+    if (!firestore || !user || !masterBanks || !userChecklist) return;
 
-    const currentChecklist = userChecklist || [];
-    const checklistIds = new Set(currentChecklist.map(item => item.id));
+    const checklistIds = new Set(userChecklist.map(item => item.id));
     const banksToAdd = masterBanks.filter(bank => !checklistIds.has(bank.id));
 
     if (banksToAdd.length > 0) {
@@ -162,8 +178,6 @@ export default function BankProposalView() {
         banksToAdd.forEach(bank => {
             const checklistRef = doc(firestore, 'users', user.uid, 'bankChecklists', bank.id);
             const newChecklistItem: Omit<BankChecklistStatus, 'id'> = {
-                name: bank.name,
-                logoUrl: bank.logoUrl || '',
                 status: 'Pendente',
                 insertionDate: null,
                 updatedAt: serverTimestamp()
@@ -190,9 +204,9 @@ export default function BankProposalView() {
           const updatedAt = checklistStatus?.updatedAt || bank.updatedAt;
 
           return {
-              id: bank.id,
-              name: bank.name,
-              logoUrl: bank.logoUrl,
+              ...bank, // master bank data
+              ...checklistStatus, // user checklist data
+              id: bank.id, // ensure master id is used
               status: status,
               insertionDate: insertionDate,
               updatedAt: updatedAt,
@@ -391,6 +405,7 @@ export default function BankProposalView() {
 >>>>>>> 0af121b (File changes)
   };
 <<<<<<< HEAD
+<<<<<<< HEAD
 
   const getPriorityBadgeVariant = (priority: 'Alta' | 'Média' | 'Baixa') => {
     switch (priority) {
@@ -523,11 +538,47 @@ export default function BankProposalView() {
         setIsResetting(false);
     }
   }
+=======
+
+  const handleOpenEditModal = (bank: BankMaster) => {
+    setSelectedBank(bank);
+    setIsEditModalOpen(true);
+  };
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
   
+  const handleUpdateBank = async (updatedData: { name: string, logoUrl: string }) => {
+    if (!firestore || !selectedBank) return;
+  
+    const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
+  
+    try {
+      await updateDoc(bankMasterRef, {
+        name: updatedData.name,
+        logoUrl: updatedData.logoUrl,
+        updatedAt: serverTimestamp()
+      });
+  
+      toast({
+        title: 'Banco Atualizado!',
+        description: `O banco ${updatedData.name} foi atualizado com sucesso.`,
+      });
+      setIsEditModalOpen(false);
+      setSelectedBank(null);
+    } catch (error) {
+      console.error('Error updating bank:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar',
+        description: 'Não foi possível atualizar o banco.',
+      });
+    }
+  };
+
   const isLoading = isLoadingMasterBanks || isLoadingChecklist;
 
   return (
     <>
+<<<<<<< HEAD
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -608,9 +659,48 @@ export default function BankProposalView() {
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Adicionar Banco
               </Button>
+=======
+      {isMaster && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Adicionar Banco</CardTitle>
+            <CardDescription>
+              Insira os detalhes do banco para adicioná-lo à lista de checklist.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                <div className="space-y-2">
+                  <Label htmlFor="bank-name">Nome do Banco</Label>
+                  <Input 
+                    id="bank-name"
+                    type="text" 
+                    placeholder="Ex: Banco do Brasil" 
+                    value={newBankName}
+                    onChange={(e) => setNewBankName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank-logo">URL da Logo</Label>
+                  <Input 
+                    id="bank-logo"
+                    type="text" 
+                    placeholder="https://.../logo.png" 
+                    value={newBankLogoUrl}
+                    onChange={(e) => setNewBankLogoUrl(e.target.value)}
+                  />
+                </div>
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
             </div>
-        </CardContent>
-      </Card>
+             <div className="mt-4">
+                <Button onClick={handleAddBank}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Adicionar Banco
+                </Button>
+              </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -689,10 +779,14 @@ export default function BankProposalView() {
                       <Badge variant={getPriorityBadgeVariant(bank.priority)}>{bank.priority}</Badge>
                     </TableCell>
 <<<<<<< HEAD
+<<<<<<< HEAD
                     <TableCell className="text-right space-x-2">
 =======
                     <TableCell className="text-right">
 >>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
+=======
+                    <TableCell className="text-right space-x-2">
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
                       <Button 
                           variant="ghost" 
                           size="sm" 
@@ -710,6 +804,17 @@ export default function BankProposalView() {
                           </>
                         )}
                       </Button>
+                      {isMaster && (
+                          <Button 
+                              variant="outline" 
+                              size="icon" 
+                              onClick={() => handleOpenEditModal(bank)}
+                              className="h-8 w-8"
+                          >
+                              <Edit className="h-4 w-4"/>
+                              <span className="sr-only">Editar Banco</span>
+                          </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -732,6 +837,14 @@ export default function BankProposalView() {
           )}
         </CardContent>
       </Card>
+      {selectedBank && (
+        <EditBankModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          bank={selectedBank}
+          onSave={handleUpdateBank}
+        />
+      )}
     </>
   );
 }

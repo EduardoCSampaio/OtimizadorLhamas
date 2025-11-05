@@ -12,15 +12,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+<<<<<<< HEAD
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BankMaster, BankCategory, Promotora } from '@/lib/types';
+=======
+import type { BankMaster } from '@/lib/types';
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
 import { useToast } from '@/hooks/use-toast';
 
 interface EditBankModalProps {
   isOpen: boolean;
   onClose: () => void;
   bank: BankMaster;
+<<<<<<< HEAD
   promotoras: Promotora[];
   onSave: (updatedData: { name: string, logoUrl: string, categories: BankCategory[], promotoraId?: string }) => Promise<void>;
 }
@@ -33,12 +38,22 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
   const [logoUrl, setLogoUrl] = useState('');
   const [categories, setCategories] = useState<BankCategory[]>([]);
   const [promotoraId, setPromotoraId] = useState<string | undefined>(undefined);
+=======
+  onSave: (updatedData: { name: string, logoUrl: string }) => Promise<void>;
+}
+
+export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBankModalProps) {
+  const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (bank) {
       setName(bank.name);
       setLogoUrl(bank.logoUrl || '');
+<<<<<<< HEAD
       setCategories(bank.categories || []);
       setPromotoraId(bank.promotoraId || 'none');
     }
@@ -52,6 +67,11 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
     );
   };
 
+=======
+    }
+  }, [bank]);
+
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
   const handleSave = async () => {
     if (name.trim() === '') {
       toast({
@@ -61,6 +81,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
       });
       return;
     }
+<<<<<<< HEAD
     if (categories.length === 0) {
       toast({
         variant: 'destructive',
@@ -72,6 +93,11 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
 
     setIsSaving(true);
     await onSave({ name, logoUrl, categories, promotoraId: promotoraId === 'none' ? undefined : promotoraId });
+=======
+
+    setIsSaving(true);
+    await onSave({ name, logoUrl });
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
     setIsSaving(false);
   };
 
@@ -81,10 +107,17 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
         <DialogHeader>
           <DialogTitle>Editar Banco: {bank.name}</DialogTitle>
           <DialogDescription>
+<<<<<<< HEAD
             Atualize os detalhes do banco.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
+=======
+            Atualize o nome e a URL da logo do banco.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="edit-bank-name" className="text-right">
               Nome
@@ -107,6 +140,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
               className="col-span-3"
             />
           </div>
+<<<<<<< HEAD
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="promotora-select" className="text-right">
               Promotora
@@ -140,6 +174,8 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
                 ))}
             </div>
           </div>
+=======
+>>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSaving}>

@@ -40,6 +40,7 @@ export interface BankMaster {
 export interface BankChecklistStatus {
   id: string; // This ID should correspond to the BankMaster ID
   status: 'Pendente' | 'Concluído';
+<<<<<<< HEAD
   insertionDate: Timestamp | null;
   updatedAt: Timestamp;
 }
@@ -50,6 +51,10 @@ export interface CLTRule {
   ruleValue: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+=======
+  insertionDate?: Date;
+  priority: 'Alta' | 'Média' | 'Baixa';
+>>>>>>> 6585a1e (Prioridades:)
 }
 
 export interface PriorityTask {

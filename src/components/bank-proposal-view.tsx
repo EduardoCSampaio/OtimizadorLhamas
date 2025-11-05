@@ -85,6 +85,26 @@ export default function BankProposalView() {
   const [bankStatuses, setBankStatuses] = useState<BankStatus[]>([]);
   const [newBankName, setNewBankName] = useState('');
 
+  const calculatePriority = (bank: BankStatus): 'Alta' | 'Média' | 'Baixa' => {
+    if (bank.status === 'Pendente' || !bank.insertionDate) {
+        const daysSinceCreation = bank.insertionDate ? differenceInDays(new Date(), bank.insertionDate) : 0;
+        if (daysSinceCreation >= 2) return 'Alta';
+        return 'Média';
+    }
+    const daysSinceUpdate = differenceInDays(new Date(), bank.insertionDate);
+    if (daysSinceUpdate >= 2) return 'Alta';
+    if (daysSinceUpdate >= 1) return 'Média';
+    return 'Baixa';
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBankStatuses(prev => prev.map(b => ({...b, priority: calculatePriority(b)})));
+    }, 1000 * 60); // Update priorities every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleAddBank = () => {
     if (newBankName.trim() === '') {
         toast({
@@ -98,13 +118,14 @@ export default function BankProposalView() {
     const newBank: BankStatus = {
       id: newBankName.toLowerCase().replace(/\s/g, ''),
       name: newBankName,
-      category: 'Custom', // Default category
-      icon: Landmark, // Default icon
+      category: 'Custom',
+      icon: Landmark,
       status: 'Pendente',
-      priority: 'Média',
+      priority: 'Média', // Initial priority
+      insertionDate: new Date(),
     };
 
-    setBankStatuses(prev => [...prev, newBank]);
+    setBankStatuses(prev => [...prev, newBank].map(b => ({...b, priority: calculatePriority(b)})));
     setNewBankName('');
     toast({
       title: 'Banco Adicionado!',
@@ -118,15 +139,21 @@ export default function BankProposalView() {
         if (b.id === bankId) {
           const isCompleted = b.status === 'Concluído';
           const newStatus = isCompleted ? 'Pendente' : 'Concluído';
-          const newDate = isCompleted ? undefined : format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+          const newDate = new Date();
           
           toast({
               title: `Status Alterado!`,
               description: `A inserção no banco ${b.name} foi marcada como ${newStatus.toLowerCase()}.`,
           });
+<<<<<<< HEAD
 
           return { ...b, status: newStatus, insertionDate: newDate };
 >>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
+=======
+          
+          const updatedBank = { ...b, status: newStatus, insertionDate: newDate };
+          return { ...updatedBank, priority: calculatePriority(updatedBank) };
+>>>>>>> 6585a1e (Prioridades:)
         }
       });
     }
@@ -229,7 +256,11 @@ export default function BankProposalView() {
             return (
                 <div className="flex flex-col">
                     <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle className="mr-2 h-3 w-3"/>Concluído</Badge>
+<<<<<<< HEAD
                     {insertionDate && <span className="text-xs text-muted-foreground mt-1">{format(insertionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
+=======
+                    {status.insertionDate && <span className="text-xs text-muted-foreground mt-1">{format(status.insertionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
+>>>>>>> 6585a1e (Prioridades:)
                 </div>
             );
     }

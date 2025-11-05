@@ -137,9 +137,11 @@ export default function BankProposalView() {
   // --- Effects ---
   // Effect to create checklist items for new banks
   useEffect(() => {
-    if (!firestore || !user || !masterBanks || !userChecklist) return;
+    if (!firestore || !user || !masterBanks) return;
 
-    const checklistIds = new Set(userChecklist.map(item => item.id));
+    // Use a local snapshot of userChecklist to avoid dependency issues if it's not ready
+    const currentChecklist = userChecklist || [];
+    const checklistIds = new Set(currentChecklist.map(item => item.id));
     const banksToAdd = masterBanks.filter(bank => !checklistIds.has(bank.id));
 
     if (banksToAdd.length > 0) {
@@ -156,7 +158,7 @@ export default function BankProposalView() {
         });
         batch.commit().catch(error => console.error("Error adding new banks to user checklist:", error));
     }
-  }, [masterBanks, userChecklist, firestore, user]);
+  }, [masterBanks, userChecklist, firestore, user]); // Keeping dependencies, but logic inside is safer
 
   // Effect to combine master bank list with user checklist
   useEffect(() => {
@@ -169,13 +171,17 @@ export default function BankProposalView() {
       
       const combined = masterBanks.map(bank => {
           const checklistStatus = checklistMap.get(bank.id);
+          const status = checklistStatus?.status || 'Pendente';
+          const insertionDate = checklistStatus?.insertionDate || null;
+          const updatedAt = checklistStatus?.updatedAt || bank.updatedAt;
+
           return {
               id: bank.id,
               name: bank.name,
-              status: checklistStatus?.status || 'Pendente',
-              insertionDate: checklistStatus?.insertionDate || null,
-              updatedAt: checklistStatus?.updatedAt || bank.updatedAt,
-              priority: calculatePriority(checklistStatus)
+              status: status,
+              insertionDate: insertionDate,
+              updatedAt: updatedAt,
+              priority: calculatePriority(status, insertionDate)
           };
       });
 
@@ -186,15 +192,17 @@ export default function BankProposalView() {
 
 
   // --- Helper Functions ---
-  const calculatePriority = (item: BankChecklistStatus | undefined): 'Alta' | 'Média' | 'Baixa' => {
-    if (!item || item.status === 'Pendente' || !item.insertionDate) {
-      return 'Média'; 
-    }
-    const insertionDate = item.insertionDate.toDate();
-    const daysSinceUpdate = differenceInDays(new Date(), insertionDate);
-    if (daysSinceUpdate >= 2) return 'Alta';
-    if (daysSinceUpdate >= 1) return 'Média';
-    return 'Baixa';
+  const calculatePriority = (status: 'Pendente' | 'Concluído', insertionDate: any): 'Alta' | 'Média' | 'Baixa' => {
+      if (status === 'Pendente' || !insertionDate) {
+        return 'Média'; 
+      }
+      // firebase.firestore.Timestamp has a toDate() method
+      const date = insertionDate.toDate ? insertionDate.toDate() : new Date();
+      const daysSinceUpdate = differenceInDays(new Date(), date);
+
+      if (daysSinceUpdate >= 2) return 'Alta';
+      if (daysSinceUpdate >= 1) return 'Média';
+      return 'Baixa';
   };
 
   const getPriorityBadgeVariant = (priority: 'Alta' | 'Média' | 'Baixa') => {
@@ -242,25 +250,11 @@ export default function BankProposalView() {
       updatedAt: serverTimestamp(),
     };
 
-    try {
-        const docRef = await addDoc(banksMasterCollectionRef, newBankData);
-        const userChecklistRef = doc(userChecklistCollectionRef, docRef.id);
-        const newChecklistItem: Omit<BankChecklistStatus, 'id'> = {
-            name: newBankData.name,
-            status: 'Pendente',
-            insertionDate: null,
-            updatedAt: serverTimestamp(),
-        };
-        // Use non-blocking set which also handles errors
-        setDocumentNonBlocking(userChecklistRef, newChecklistItem, {merge: false});
+    // Use blocking addDoc here to get the ID for the next step
+    addDocumentNonBlocking(banksMasterCollectionRef, newBankData);
 
-        setNewBankName('');
-        toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
-
-    } catch (error) {
-        console.error("Error adding bank:", error);
-        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível adicionar o banco.' });
-    }
+    setNewBankName('');
+    toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
   };
 
   const handleToggleStatus = (bankId: string) => {

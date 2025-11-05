@@ -29,7 +29,6 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import { useToast } from '@/hooks/use-toast';
-import localLogo from '../../../public/logo.png';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -49,6 +48,8 @@ type BankDataForPDF = {
     rules: Record<string, string>;
     logoImage?: HTMLImageElement;
 }
+
+const localLogoPath = '/logo.png';
 
 
 export default function CltRulesView({ userRole }: CltRulesViewProps) {
@@ -75,28 +76,20 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
     const loadImage = (url: string): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
-          if (!url || typeof url !== 'string') {
-              return reject(new Error('URL inválida ou ausente.'));
-          }
-
-          const img = new window.Image();
+          const img = new Image();
           img.crossOrigin = 'Anonymous';
           img.onload = () => resolve(img);
           img.onerror = (err) => reject(err);
           
           if (url.startsWith('/')) {
-              // For local static imports, the 'src' property holds the path
-              img.src = url;
-          } else if (url.startsWith('http')) {
-              // Use proxy for external URLs to mitigate CORS issues
-              img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+              img.src = window.location.origin + url;
           } else {
-             reject(new Error('Formato de URL não suportado.'));
+              img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
           }
       });
   };
 
-    const handleExportAllToPDF = async () => {
+  const handleExportAllToPDF = async () => {
     if (!firestore || !banks || banks.length === 0) {
       toast({
         variant: 'destructive',
@@ -118,27 +111,24 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             return rules;
         });
 
-        // Use a URL local '/logo.png' ou a URL do banco
-        const logoUrl = bank.name === "2S" ? localLogo.src : bank.logoUrl;
+        const logoUrl = bank.name === "2S" ? localLogoPath : bank.logoUrl;
+        
+        let imagePromise: Promise<HTMLImageElement | undefined> = Promise.resolve(undefined);
+        if (logoUrl) {
+            imagePromise = loadImage(logoUrl).catch(e => {
+                console.error(`Failed to load image for ${bank.name}:`, e);
+                toast({
+                    variant: "destructive",
+                    title: `Erro ao carregar logo`,
+                    description: `Não foi possível carregar a logo para ${bank.name}.`,
+                });
+                return undefined;
+            });
+        }
 
-        const imagePromise = logoUrl
-            ? loadImage(logoUrl)
-                .catch(e => {
-                    console.error(`Failed to load image for ${bank.name}:`, e);
-                    toast({
-                        variant: "destructive",
-                        title: `Erro ao carregar logo`,
-                        description: `Não foi possível carregar a logo para ${bank.name}.`,
-                    });
-                    return undefined; // Retorna undefined se a imagem falhar
-                })
-            : Promise.resolve(undefined);
-
-        return Promise.all([rulesPromise, imagePromise]).then(([rules, logoImage]) => ({
-            bank,
-            rules,
-            logoImage,
-        }));
+        return Promise.all([rulesPromise, imagePromise]).then(([rules, logoImage]) => {
+            return { bank, rules, logoImage };
+        });
     });
 
     const allBanksData = await Promise.all(bankDataPromises);
@@ -148,7 +138,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
-        const row : (string)[] = [ bankData.logoImage ? '' : bankData.bank.name ];
+        const row : (string | null)[] = [ bankData.logoImage ? null : bankData.bank.name ];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
@@ -174,7 +164,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             halign: 'center'
         },
         columnStyles: {
-            0: { fontStyle: 'bold', minCellWidth: 40 }
+            0: { fontStyle: 'bold', minCellWidth: 40, halign: 'left' }
         },
         didParseCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
@@ -195,12 +185,10 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
                     let imgWidth, imgHeight;
 
-                    if (availableWidth / aspectRatio <= availableHeight) {
-                        // Fit to width
+                    if ((availableWidth / aspectRatio) <= availableHeight) {
                         imgWidth = availableWidth;
                         imgHeight = imgWidth / aspectRatio;
                     } else {
-                        // Fit to height
                         imgHeight = availableHeight;
                         imgWidth = imgHeight * aspectRatio;
                     }
@@ -209,11 +197,12 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const y = cell.y + (cell.height - imgHeight) / 2;
                     
                     doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                } else {
+                     data.cell.text = bankData.bank.name;
                 }
             }
         },
         didDrawPage: (data) => {
-            // Header
             doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
             doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
@@ -222,7 +211,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             doc.setFont('helvetica', 'normal');
             doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
 
-            // Footer
             const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);
             const text = `Página ${data.pageNumber} de ${pageCount}`;
@@ -230,7 +218,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
             doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
         },
-        margin: { top: headerHeight }
+        margin: { top: headerHeight + 5 }
     });
   
     doc.save(`regras_clt_consolidado.pdf`);

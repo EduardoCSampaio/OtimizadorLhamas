@@ -44,6 +44,10 @@
           "type": "string",
           "description": "Name of the bank."
         },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL for the bank's logo."
+        },
         "category": {
           "type": "string",
           "description": "Category of the bank."

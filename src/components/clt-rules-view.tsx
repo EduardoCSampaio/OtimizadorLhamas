@@ -74,16 +74,23 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   };
 
   const loadImage = (url: string): Promise<HTMLImageElement> => {
-      return new Promise((resolve, reject) => {
-        if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-          return reject(new Error('URL da imagem inválida ou ausente.'));
-        }
-          const img = new window.Image();
-          img.crossOrigin = 'Anonymous';
-          img.onload = () => resolve(img);
-          img.onerror = (err) => reject(err);
-          img.src = url;
-      });
+    return new Promise((resolve, reject) => {
+      if (!url || typeof url !== 'string') {
+        return reject(new Error('URL da imagem inválida ou ausente.'));
+      }
+  
+      const img = new window.Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
+  
+      if (url.startsWith('http')) {
+        const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+        img.src = proxiedUrl;
+      } else {
+        img.src = url;
+      }
+    });
   };
 
   const handleExportAllToPDF = async () => {
@@ -98,6 +105,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
     
+    // Fetch all rules first
     const banksAndRulesPromises = banks.map(async (bank) => {
         const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
         const rulesSnapshot = await getDocs(cltRulesCollectionRef);
@@ -108,14 +116,12 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         });
         return { bankName: bank.name, rules, logoUrl: bank.logoUrl };
     });
-
     const banksAndRules = await Promise.all(banksAndRulesPromises);
 
-    const imageLoadingPromises = banksAndRules.map(bank => {
-        if (!bank.logoUrl) {
-            return Promise.resolve({ ...bank, logoImage: undefined });
-        }
-        return loadImage(bank.logoUrl)
+    // Then load all images
+    const imageLoadingPromises = banksAndRules.map(bank => 
+        bank.logoUrl 
+        ? loadImage(bank.logoUrl)
             .then(img => ({ ...bank, logoImage: img }))
             .catch(e => {
                 console.error(`Failed to load image for ${bank.bankName}:`, e);
@@ -124,10 +130,11 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     title: `Erro ao carregar logo`,
                     description: `Não foi possível carregar a logo para ${bank.bankName}.`,
                 });
-                return { ...bank, logoImage: undefined };
-            });
-    });
-    
+                return { ...bank, logoImage: undefined }; // Proceed without the image
+            })
+        : Promise.resolve({ ...bank, logoImage: undefined })
+    );
+
     const allBanksData = await Promise.all(imageLoadingPromises);
 
     allBanksData.sort((a, b) => a.bankName.localeCompare(b.bankName));
@@ -137,7 +144,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
         const row : any[] = [
-            bankData.logoImage ? '' : bankData.bankName
+            bankData.bankName // Pass name for fallback
         ];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
@@ -148,7 +155,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     doc.autoTable({
         head: head,
         body: body,
-        startY: 35,
         theme: 'grid',
         headStyles: { 
             fillColor: [22, 22, 22],
@@ -165,44 +171,48 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         columnStyles: {
             0: { fontStyle: 'bold', cellWidth: 40, minCellHeight: 25 }
         },
+        didParseCell: (data) => {
+            // Remove text if an image will be drawn
+            if (data.column.index === 0 && data.row.section === 'body') {
+                const bankData = allBanksData[data.row.index];
+                if (bankData?.logoImage) {
+                    data.cell.text = '';
+                }
+            }
+        },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
                 const bankData = allBanksData[data.row.index];
-                if (bankData && bankData.logoImage) {
+                if (bankData?.logoImage) {
                     const img = bankData.logoImage;
                     const cell = data.cell;
                     const cellPadding = 2;
                     const maxImgWidth = cell.width - (2 * cellPadding);
                     const maxImgHeight = 20;
 
-                    let imgWidth, imgHeight;
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
-
-                    if (img.naturalWidth > img.naturalHeight) { // Landscape
-                        imgWidth = maxImgWidth;
-                        imgHeight = imgWidth / aspectRatio;
-                    } else { // Portrait or square
-                        imgHeight = maxImgHeight;
-                        imgWidth = imgHeight * aspectRatio;
-                    }
+                    let imgWidth = maxImgWidth;
+                    let imgHeight = imgWidth / aspectRatio;
 
                     if (imgHeight > maxImgHeight) {
                         imgHeight = maxImgHeight;
                         imgWidth = imgHeight * aspectRatio;
-                    }
-                    if (imgWidth > maxImgWidth) {
-                        imgWidth = maxImgWidth;
-                        imgHeight = imgWidth / aspectRatio;
                     }
 
                     const x = cell.x + (cell.width - imgWidth) / 2;
                     const y = cell.y + (cell.height - imgHeight) / 2;
                     
                     try {
-                        const format = img.src.toLowerCase().endsWith('.png') ? 'PNG' : 'JPEG';
-                        doc.addImage(img, format, x, y, imgWidth, imgHeight, undefined, 'FAST');
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx?.drawImage(img, 0, 0);
+                        const dataUrl = canvas.toDataURL('image/png');
+                        doc.addImage(dataUrl, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
                     } catch (e) {
                         console.error(`Failed to add image for ${bankData.bankName}:`, e);
+                        // Fallback to text if image adding fails
                         const text = bankData.bankName;
                         doc.text(text, cell.x + cell.width / 2, cell.y + cell.height / 2, { baseline: 'middle', align: 'center' });
                     }
@@ -210,6 +220,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             }
         },
         didDrawPage: (data) => {
+            // Header
             doc.setFontSize(22);
             doc.setFont('helvetica', 'bold');
             doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
@@ -218,13 +229,15 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             doc.setFont('helvetica', 'normal');
             doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
 
+            // Footer
             const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);
             const text = `Página ${data.pageNumber} de ${pageCount}`;
             const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
             const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
             doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
-        }
+        },
+        margin: { top: 30 } // Set top margin to make space for the header
     });
   
     doc.save(`regras_clt_consolidado.pdf`);

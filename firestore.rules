@@ -10,7 +10,7 @@ service cloud.firestore {
     // Helper function to check if the user has the 'master' role
     function isMaster() {
       // Assumes the user's role is stored in a 'role' field in their user document
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'master';
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'master';
     }
 
     match /users/{userId} {
@@ -29,6 +29,13 @@ service cloud.firestore {
         // The user can perform all operations on their own bank statuses.
         allow read, write: if isOwner(userId);
       }
+    }
+
+    match /cltRules/{ruleId} {
+      // Any authenticated user can read the rules.
+      allow read: if request.auth != null;
+      // Only users with the 'master' role can create, update, or delete rules.
+      allow write: if isMaster();
     }
   }
 }

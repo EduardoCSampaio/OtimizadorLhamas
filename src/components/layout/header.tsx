@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, Bell, LifeBuoy, LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { Banknote, Bell, LifeBuoy, LogOut, Settings, User as UserIcon, BookCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +16,8 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useUser, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
+import Link from 'next/link';
+
 
 export default function Header() {
   const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar');
@@ -33,10 +35,12 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-card/80 px-4 backdrop-blur-sm md:px-6">
       <div className="flex items-center gap-2 md:gap-4">
-        <Banknote className="h-7 w-7 text-primary" />
-        <h1 className="text-lg font-bold text-primary md:text-xl font-headline">
-          Bank Proposal Automation
-        </h1>
+        <Link href="/" className='flex items-center gap-2'>
+            <Banknote className="h-7 w-7 text-primary" />
+            <h1 className="text-lg font-bold text-primary md:text-xl font-headline">
+            Bank Proposal Automation
+            </h1>
+        </Link>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
         <Button variant="ghost" size="icon" className="rounded-full">
@@ -66,6 +70,10 @@ export default function Header() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => router.push('/regras-clt')}>
+                  <BookCheck className="mr-2 h-4 w-4" />
+                  <span>Regras CLT</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Perfil</span>

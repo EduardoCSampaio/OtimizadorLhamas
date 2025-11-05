@@ -427,6 +427,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             </div>
 =======
           <DialogTitle>Regras CLT para: {bank.name}</DialogTitle>
+<<<<<<< HEAD
           <DialogDescription>
 <<<<<<< HEAD
             {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
@@ -443,6 +444,17 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             </div>
 >>>>>>> 363034c (Será que é possível fazer uma parte de exportação em pdf dessas regras?)
           </DialogDescription>
+=======
+          <div className="flex justify-between items-center pt-2">
+            <DialogDescription>
+                {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
+            </DialogDescription>
+            <Button variant="outline" size="sm" onClick={handleExportToPDF}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar PDF
+            </Button>
+          </div>
+>>>>>>> c326ad5 (Try fixing this error: `Console Error: In HTML, <div> cannot be a descen)
         </DialogHeader>
         
         <div className='flex-grow overflow-y-auto pr-6'>

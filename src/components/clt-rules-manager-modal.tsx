@@ -129,6 +129,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   const [newRules, setNewRules] = useState<{ ruleName: string, ruleValue: string }[]>([]);
   const [editingRule, setEditingRule] = useState<CLTRule | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+<<<<<<< HEAD
 =======
   const [newRules, setNewRules] = useState([{ ruleName: '', ruleValue: '' }]);
 =======
@@ -136,6 +137,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 >>>>>>> 2c6d054 (Situação	Idade	Margem e Segurança	Limites	Prazo	Empréstimos	Tempo Empres)
   const [editingRule, setEditingRule] = useState<CLTRule | null>(null);
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+>>>>>>> 0849f29 (Try fixing this error: `Console Error: Error: Invalid coordinates passed)
 
   useEffect(() => {
     // Reset state when modal opens for a new bank
@@ -382,41 +385,76 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
 
-  const handleExportToPDF = () => {
+  const handleExportToPDF = async () => {
     if (!cltRules || cltRules.length === 0) {
       toast({ variant: 'destructive', title: 'Nenhuma regra para exportar', description: 'Não há regras cadastradas para este banco.' });
       return;
     }
-
+    
+    setIsExporting(true);
     const docPDF = new jsPDF() as jsPDFWithAutoTable;
-    generatePdfContent(docPDF);
+
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(err);
+          img.src = url;
+        });
+    };
+
+    let logoImage: HTMLImageElement | null = null;
+    if (bank.logoUrl) {
+        try {
+            logoImage = await loadImage(bank.logoUrl);
+        } catch (e) {
+            console.error("Failed to load logo for PDF, skipping.", e);
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao carregar logo',
+                description: 'Não foi possível carregar a imagem da logo para o PDF.'
+            });
+        }
+    }
+    
+    generatePdfContent(docPDF, logoImage);
+    setIsExporting(false);
   };
 
-  const generatePdfContent = (docPDF: jsPDFWithAutoTable) => {
-      const addHeader = () => {
+  const generatePdfContent = (docPDF: jsPDFWithAutoTable, logoImage: HTMLImageElement | null) => {
+      const addHeader = (data: any) => {
         const pageWidth = docPDF.internal.pageSize.getWidth();
         let startY = 20;
 
-        if (bank.logoUrl) {
-            try {
-                const img = new (window as any).Image();
-                img.crossOrigin = 'Anonymous';
-                img.src = bank.logoUrl;
+        if (logoImage) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                const maxBoxWidth = 50;
+                const maxBoxHeight = 30; 
+                const aspectRatio = logoImage.naturalWidth / logoImage.naturalHeight;
+                
+                let renderWidth = logoImage.naturalWidth;
+                let renderHeight = logoImage.naturalHeight;
+                
+                if (renderWidth > maxBoxWidth) {
+                    renderWidth = maxBoxWidth;
+                    renderHeight = renderWidth / aspectRatio;
+                }
+                
+                if (renderHeight > maxBoxHeight) {
+                    renderHeight = maxBoxHeight;
+                    renderWidth = renderHeight * aspectRatio;
+                }
+                
+                canvas.width = logoImage.naturalWidth;
+                canvas.height = logoImage.naturalHeight;
+                ctx.drawImage(logoImage, 0, 0);
 
-                const desiredWidth = 30; 
-                const desiredHeight = 30;
-                let imgWidth = img.naturalWidth;
-                let imgHeight = img.naturalHeight;
-
-                const ratio = Math.min(desiredWidth / imgWidth, desiredHeight / imgHeight);
-                imgWidth = imgWidth * ratio;
-                imgHeight = imgHeight * ratio;
-
-                const x = (pageWidth - imgWidth) / 2;
-                docPDF.addImage(bank.logoUrl, '', x, startY, imgWidth, imgHeight, undefined, 'FAST');
-                startY += imgHeight + 5;
-            } catch (e) {
-                console.error("Failed to add logo to PDF, skipping.", e);
+                const x = (pageWidth - renderWidth) / 2;
+                docPDF.addImage(canvas.toDataURL('image/png'), 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
+                startY += renderHeight + 5;
             }
         }
         
@@ -424,13 +462,11 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         docPDF.text(`Regras CLT - ${bank.name}`, pageWidth / 2, startY, { align: 'center' });
       };
 
-      const addFooter = () => {
-          const pageCount = (docPDF.internal as any).getNumberOfPages ? (docPDF.internal as any).getNumberOfPages() : 1;
-          for (let i = 1; i <= pageCount; i++) {
-              docPDF.setPage(i);
-              docPDF.setFontSize(10);
-              docPDF.text(`Página ${i} de ${pageCount}`, docPDF.internal.pageSize.getWidth() - 20, docPDF.internal.pageSize.getHeight() - 10, { align: 'right' });
-          }
+      const addFooter = (data: any) => {
+          const pageCount = data.doc.internal.getNumberOfPages();
+          docPDF.setPage(data.pageNumber);
+          docPDF.setFontSize(10);
+          docPDF.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, docPDF.internal.pageSize.getHeight() - 10);
       };
       
       docPDF.autoTable({
@@ -439,15 +475,11 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] },
         didDrawPage: (data) => {
-            // Header
-            addHeader();
-            // Reset startY for table on subsequent pages if header is tall
-            data.settings.startY = (data.pageNumber === 1) ? 65 : 20;
+            addHeader(data);
+            addFooter(data);
         },
         margin: { top: 65 } // Initial margin for the first page
       });
-
-      addFooter();
       
       docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
   }
@@ -483,6 +515,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
               </span>
               <Button variant="outline" size="sm" onClick={handleExportToPDF} disabled={isExporting}>
+<<<<<<< HEAD
                 <FileDown className="mr-2 h-4 w-4" />
                 {isExporting ? 'Exportando...' : 'Exportar PDF'}
               </Button>
@@ -500,8 +533,10 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
               </span>
               <Button variant="outline" size="sm" onClick={handleExportToPDF}>
+=======
+>>>>>>> 0849f29 (Try fixing this error: `Console Error: Error: Invalid coordinates passed)
                 <FileDown className="mr-2 h-4 w-4" />
-                Exportar PDF
+                {isExporting ? 'Exportando...' : 'Exportar PDF'}
               </Button>
             </div>
 >>>>>>> 363034c (Será que é possível fazer uma parte de exportação em pdf dessas regras?)
@@ -593,7 +628,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 <div className="space-y-4">
                   {newRules.map((rule, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <Input placeholder="Nome da Regra" value={rule.ruleName} onChange={e => handleNewRuleChange(index, 'ruleName', e.target.value)} disabled />
+                      <Input placeholder="Nome da Regra" value={rule.ruleName} onChange={e => handleNewRuleChange(index, 'ruleName', e.target.value)} />
                       <Input placeholder="Valor da Regra" value={rule.ruleValue} onChange={e => handleNewRuleChange(index, 'ruleValue', e.target.value)} />
 <<<<<<< HEAD
 <<<<<<< HEAD

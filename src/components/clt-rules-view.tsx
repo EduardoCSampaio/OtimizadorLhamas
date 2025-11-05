@@ -96,11 +96,21 @@ const ruleOrder = [
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 type BankDataForPDF = {
     bank: BankMaster;
     rules: Record<string, string>;
     logoImage?: HTMLImageElement;
 }
+=======
+type BankDataForPDF = {
+    bankName: string;
+    rules: Record<string, string>;
+    logoUrl?: string;
+    logoImage?: HTMLImageElement;
+}
+
+>>>>>>> 0849f29 (Try fixing this error: `Console Error: Error: Invalid coordinates passed)
 
 const localLogoPath = '/logo.png';
 
@@ -409,7 +419,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     setIsExporting(true);
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
   
-    const allRulesData = [];
+    const allRulesData: BankDataForPDF[] = [];
     for (const bank of banks) {
         const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
         const rulesSnapshot = await getDocs(cltRulesCollectionRef);
@@ -420,6 +430,30 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         });
         allRulesData.push({ bankName: bank.name, rules: rulesMap, logoUrl: bank.logoUrl });
     }
+    
+    // Pre-load all images
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = (err) => reject(err);
+            img.src = url;
+        });
+    };
+
+    await Promise.all(
+        allRulesData.map(async (bankData) => {
+            if (bankData.logoUrl) {
+                try {
+                    bankData.logoImage = await loadImage(bankData.logoUrl);
+                } catch (e) {
+                    console.error(`Failed to load image for ${bankData.bankName}:`, e);
+                    // Continue without the image if it fails to load
+                }
+            }
+        })
+    );
       
     // Prepare table data
     const head = [['Bancos', ...ruleOrder]];
@@ -455,29 +489,47 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
                 const bankData = allRulesData[data.row.index];
-                 if (bankData && bankData.logoUrl) {
+                 if (bankData && bankData.logoImage) {
+                    const img = bankData.logoImage;
+                    const cell = data.cell;
+                    
+                    const cellWidth = cell.width - cell.padding('horizontal');
+                    const cellHeight = cell.height - cell.padding('vertical');
+                    
+                    const boxSize = 20; // The 'box' to fit the image into
+                    const aspectRatio = img.naturalWidth / img.naturalHeight;
+                    
+                    let imgWidth, imgHeight;
+                    if (aspectRatio > 1) { // Wider than tall
+                        imgWidth = boxSize;
+                        imgHeight = boxSize / aspectRatio;
+                    } else { // Taller than wide or square
+                        imgHeight = boxSize;
+                        imgWidth = boxSize * aspectRatio;
+                    }
+                    
+                    // Center the image in the cell
+                    const x = cell.x + (cell.width - imgWidth) / 2;
+                    const y = cell.y + 2;
+
                     try {
-                        const cell = data.cell;
-                        const img = new (window as any).Image();
-                        img.crossOrigin = 'Anonymous';
-                        img.src = bankData.logoUrl;
-                        
-                        const desiredWidth = 20;
-                        const desiredHeight = 20;
+                      // Use canvas to draw image and preserve transparency
+                      const canvas = document.createElement('canvas');
+                      canvas.width = img.naturalWidth;
+                      canvas.height = img.naturalHeight;
+                      const ctx = canvas.getContext('2d');
+                      if (ctx) {
+                          ctx.drawImage(img, 0, 0);
+                          doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                      } else {
+                          // Fallback for safety, though unlikely to fail
+                          doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                      }
 
-                        const ratio = Math.min(desiredWidth / img.naturalWidth, desiredHeight / img.naturalHeight);
-                        const imgWidth = img.naturalWidth * ratio;
-                        const imgHeight = img.naturalHeight * ratio;
-
-                        // Center the image in the cell
-                        const x = cell.x + (cell.width - imgWidth) / 2;
-                        const y = cell.y + 2; // Add some padding from the top
-
-                        doc.addImage(img.src, '', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                        
-                        if (cell.textPos) {
-                          cell.textPos.y = y + imgHeight + 4;
-                        }
+                      // Adjust text position
+                      if (cell.textPos) {
+                        cell.textPos.y = y + imgHeight + 3;
+                      }
                     } catch (e) {
                       console.error(`Failed to add image for ${bankData.bankName}:`, e);
                     }

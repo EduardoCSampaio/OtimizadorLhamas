@@ -105,7 +105,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     setIsExporting(true);
 
     // Deep copy of banks to avoid mutation issues
-    const banksCopy = JSON.parse(JSON.stringify(banks));
+    const banksCopy = JSON.parse(JSON.stringify(banks)) as BankMaster[];
 
     const dataForPdf: BankDataForPDF[] = await Promise.all(
         banksCopy.map(async (bank: BankMaster) => {
@@ -222,7 +222,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const pageMargin = 14;
             const pageWidth = doc.internal.pageSize.getWidth();
 
-            doc.setFontSize(20);
+            doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
             doc.text('Crédito do Trabalhador', pageMargin, 18);
             

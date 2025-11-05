@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { BankMaster, CLTRule } from '@/lib/types';
 import { useCollection, useFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, orderBy, query } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
 import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown, BookUp } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -61,7 +61,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   const isMaster = userRole === 'master';
 
   const cltRulesCollectionRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'bankStatuses', bank.id, 'cltRules') : null),
+    () => (firestore ? query(collection(firestore, 'bankStatuses', bank.id, 'cltRules'), orderBy('ruleName')) : null),
     [firestore, bank.id]
   );
   
@@ -116,9 +116,9 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
   
   const handleUpdateRule = () => {
-    if (!editingRule || !cltRulesCollectionRef) return;
+    if (!editingRule || !firestore) return;
 
-    const ruleDocRef = doc(cltRulesCollectionRef, editingRule.id);
+    const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', editingRule.id);
     updateDocumentNonBlocking(ruleDocRef, {
         ruleName: editingRule.ruleName,
         ruleValue: editingRule.ruleValue,
@@ -130,8 +130,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   }
 
   const handleDeleteRule = (ruleId: string) => {
-    if (!cltRulesCollectionRef) return;
-    const ruleDocRef = doc(cltRulesCollectionRef, ruleId);
+    if (!firestore) return;
+    const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', ruleId);
     deleteDocumentNonBlocking(ruleDocRef);
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };

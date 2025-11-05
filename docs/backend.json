@@ -8,67 +8,70 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "Unique identifier for the User entity. (Same as Firebase Auth UID)"
         },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
         },
-        "firstName": {
+        "displayName": {
           "type": "string",
-          "description": "First name of the user."
+          "description": "Display name of the user."
         },
-        "lastName": {
+        "role": {
           "type": "string",
-          "description": "Last name of the user."
-        },
-        "roleId": {
-          "type": "string",
-          "description": "Reference to Role. (Relationship: User 1:1 Role)"
+          "description": "User role, e.g., 'admin', 'user'.",
+          "enum": ["master", "user"]
         }
       },
       "required": [
         "id",
         "email",
-        "firstName",
-        "lastName",
-        "roleId"
+        "role"
       ]
     },
-    "Role": {
+    "BankStatus": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Role",
+      "title": "BankStatus",
       "type": "object",
-      "description": "Defines the roles and associated permissions within the system.",
+      "description": "Represents the status of a bank proposal insertion for a specific user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Role entity."
-        },
         "name": {
           "type": "string",
-          "description": "Name of the role (e.g., Administrator, Manager, User)."
+          "description": "Name of the bank."
         },
-        "permissions": {
-          "type": "array",
-          "description": "A list of permissions associated with this role.",
-          "items": {
-            "type": "string"
-          }
+        "category": {
+          "type": "string",
+          "description": "Category of the bank."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the proposal insertion.",
+          "enum": ["Pendente", "Concluído"]
+        },
+        "insertionDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Timestamp when the proposal was marked as 'Concluído'."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the bank status was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last update."
         }
       },
-      "required": [
-        "id",
-        "name",
-        "permissions"
-      ]
+      "required": ["name", "category", "status", "createdAt", "updatedAt"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -80,7 +83,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information. Secured by requiring `request.auth.uid == userId`.",
+          "description": "Stores user profile information, including their role. Secured by requiring `request.auth.uid == userId`.",
           "params": [
             {
               "name": "userId",
@@ -90,38 +93,25 @@
         }
       },
       {
-        "path": "/roles/{roleId}",
+        "path": "/users/{userId}/bankStatuses/{bankStatusId}",
         "definition": {
-          "entityName": "Role",
+          "entityName": "BankStatus",
           "schema": {
-            "$ref": "#/backend/entities/Role"
+            "$ref": "#/backend/entities/BankStatus"
           },
-          "description": "Stores role definitions and associated permissions. Access restricted to administrative users.",
-          "params": [
-            {
-              "name": "roleId",
-              "description": "The unique identifier for the role."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/user_roles/{userId}",
-        "definition": {
-          "entityName": "Role",
-          "schema": {
-            "$ref": "#/backend/entities/Role"
-          },
-          "description": "Stores role assignments for each user. Existence of a document grants the role to the user. Used for DBAC.",
+          "description": "Stores the checklist of bank proposal statuses for a specific user. Each user can only access their own checklist.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user."
+            },
+            {
+              "name": "bankStatusId",
+              "description": "The unique identifier for the bank status entry."
             }
           ]
         }
       }
-    ],
-    "reasoning": "This Firestore structure prioritizes security and scalability for the Bank Proposal Automation system, focusing on the user and role management aspects. It leverages path-based ownership and dedicated collections for roles to simplify security rules and ensure authorization independence.\n\n1.  **Users Collection:** The `/users/{userId}` collection stores user profiles. This uses path-based ownership. Each user document is secured by requiring `request.auth.uid == userId`. This structure is secure and efficient for ownership-based security rules.\n2.  **Roles Collection:** The `/roles/{roleId}` collection stores role definitions and their associated permissions.  Access to this collection should be restricted to administrative users.\n3. **User Roles:** `/user_roles/{userId}` stores the role assignments for each user. The existence of a document in this collection grants a user the specified role. This is an example of DBAC using existence checks for simple role assignment. This ensures authorization independence and avoids complex rules based on data content.\n\nThis structure avoids hierarchical authorization dependencies (`get()`) by relying on the `request.auth.uid` and existence checks in dedicated collections. It supports secure `list` operations (QAPs) by segregating user data and role assignments into distinct collections with clear security postures. The structure also facilitates the integrity of ownership by enforcing strict path-based ownership for user profiles."
+    ]
   }
 }

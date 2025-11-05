@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { Timestamp } from 'firebase/firestore';
 
 export interface Proposal {
   clientName: string;
@@ -21,6 +22,16 @@ export interface BankStatus extends Bank {
   status: 'Pendente' | 'Concluído';
   insertionDate?: Date;
   priority: 'Alta' | 'Média' | 'Baixa';
+}
+
+export interface BankStatusDocument {
+  id: string;
+  name: string;
+  category: BankCategory;
+  status: 'Pendente' | 'Concluído';
+  insertionDate: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface PriorityTask {

@@ -19,39 +19,47 @@ import {
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { BankStatus } from '@/lib/types';
+import type { BankStatus, BankStatusDocument } from '@/lib/types';
 import { CheckCircle, History, Landmark, PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useCollection, useFirebase, useUser } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useMemoFirebase } from '@/firebase/provider';
 
 export default function BankProposalView() {
   const { toast } = useToast();
-  const [bankStatuses, setBankStatuses] = useState<BankStatus[]>([]);
+  const { user } = useUser();
+  const { firestore } = useFirebase();
+
+  const bankStatusesCollectionRef = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      return collection(firestore, 'users', user.uid, 'bankStatuses');
+  }, [firestore, user]);
+
+  const { data: bankStatuses, isLoading } = useCollection<BankStatusDocument>(bankStatusesCollectionRef);
   const [newBankName, setNewBankName] = useState('');
 
-  const calculatePriority = (bank: BankStatus): 'Alta' | 'Média' | 'Baixa' => {
-    if (bank.status === 'Pendente' || !bank.insertionDate) {
-        const daysSinceCreation = bank.insertionDate ? differenceInDays(new Date(), bank.insertionDate) : 0;
+  const calculatePriority = (bank: BankStatusDocument): 'Alta' | 'Média' | 'Baixa' => {
+    const insertionDate = bank.insertionDate ? bank.insertionDate.toDate() : null;
+    if (bank.status === 'Pendente' || !insertionDate) {
+        const creationDate = bank.createdAt ? bank.createdAt.toDate() : new Date();
+        const daysSinceCreation = differenceInDays(new Date(), creationDate);
         if (daysSinceCreation >= 2) return 'Alta';
         return 'Média';
     }
-    const daysSinceUpdate = differenceInDays(new Date(), bank.insertionDate);
+    const daysSinceUpdate = differenceInDays(new Date(), insertionDate);
     if (daysSinceUpdate >= 2) return 'Alta';
     if (daysSinceUpdate >= 1) return 'Média';
     return 'Baixa';
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBankStatuses(prev => prev.map(b => ({...b, priority: calculatePriority(b)})));
-    }, 1000 * 60); // Update priorities every minute
-
-    return () => clearInterval(interval);
-  }, []);
+  const sortedBankStatuses = bankStatuses?.map(b => ({...b, priority: calculatePriority(b)})).sort((a, b) => a.name.localeCompare(b.name));
 
   const handleAddBank = () => {
-    if (newBankName.trim() === '') {
+    if (newBankName.trim() === '' || !user || !bankStatusesCollectionRef) {
         toast({
             variant: 'destructive',
             title: 'Erro',
@@ -60,17 +68,16 @@ export default function BankProposalView() {
         return;
     }
 
-    const newBank: BankStatus = {
-      id: newBankName.toLowerCase().replace(/\s/g, ''),
+    const newBank: Omit<BankStatusDocument, 'id'> = {
       name: newBankName,
       category: 'Custom',
-      icon: Landmark,
       status: 'Pendente',
-      priority: 'Média', // Initial priority
-      insertionDate: new Date(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      insertionDate: null,
     };
 
-    setBankStatuses(prev => [...prev, newBank].map(b => ({...b, priority: calculatePriority(b)})));
+    addDocumentNonBlocking(bankStatusesCollectionRef, newBank);
     setNewBankName('');
     toast({
       title: 'Banco Adicionado!',
@@ -79,24 +86,26 @@ export default function BankProposalView() {
   };
 
   const handleToggleStatus = (bankId: string) => {
-    setBankStatuses(prev =>
-      prev.map(b => {
-        if (b.id === bankId) {
-          const isCompleted = b.status === 'Concluído';
-          const newStatus = isCompleted ? 'Pendente' : 'Concluído';
-          const newDate = new Date();
-          
-          toast({
-              title: `Status Alterado!`,
-              description: `A inserção no banco ${b.name} foi marcada como ${newStatus.toLowerCase()}.`,
-          });
-          
-          const updatedBank = { ...b, status: newStatus, insertionDate: newDate };
-          return { ...updatedBank, priority: calculatePriority(updatedBank) };
-        }
-        return b;
-      })
-    );
+    if (!user || !firestore) return;
+    
+    const bankDocRef = doc(firestore, 'users', user.uid, 'bankStatuses', bankId);
+    const currentBank = bankStatuses?.find(b => b.id === bankId);
+    if (!currentBank) return;
+
+    const isCompleted = currentBank.status === 'Concluído';
+    const newStatus = isCompleted ? 'Pendente' : 'Concluído';
+    const newInsertionDate = newStatus === 'Concluído' ? serverTimestamp() : null;
+    
+    updateDocumentNonBlocking(bankDocRef, {
+        status: newStatus,
+        insertionDate: newInsertionDate,
+        updatedAt: serverTimestamp()
+    });
+
+    toast({
+        title: `Status Alterado!`,
+        description: `A inserção no banco ${currentBank.name} foi marcada como ${newStatus.toLowerCase()}.`,
+    });
   };
 
   const getPriorityBadgeVariant = (priority: 'Alta' | 'Média' | 'Baixa') => {
@@ -110,7 +119,8 @@ export default function BankProposalView() {
     }
   };
 
-  const renderStatus = (status: BankStatus) => {
+  const renderStatus = (status: BankStatusDocument) => {
+    const insertionDate = status.insertionDate ? status.insertionDate.toDate() : null;
     switch(status.status) {
         case 'Pendente': 
             return <Badge variant="outline">Pendente</Badge>;
@@ -118,7 +128,7 @@ export default function BankProposalView() {
             return (
                 <div className="flex flex-col">
                     <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle className="mr-2 h-3 w-3"/>Concluído</Badge>
-                    {status.insertionDate && <span className="text-xs text-muted-foreground mt-1">{format(status.insertionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
+                    {insertionDate && <span className="text-xs text-muted-foreground mt-1">{format(insertionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
                 </div>
             );
     }
@@ -158,7 +168,8 @@ export default function BankProposalView() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {bankStatuses.length > 0 ? (
+          {isLoading && <p>Carregando bancos...</p>}
+          {!isLoading && bankStatuses && bankStatuses.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -169,10 +180,10 @@ export default function BankProposalView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bankStatuses.map(bank => (
+                {sortedBankStatuses?.map(bank => (
                   <TableRow key={bank.id}>
                     <TableCell className="font-medium flex items-center gap-2">
-                      <bank.icon className="h-4 w-4 text-muted-foreground" />
+                      <Landmark className="h-4 w-4 text-muted-foreground" />
                       {bank.name}
                     </TableCell>
                     <TableCell>{renderStatus(bank)}</TableCell>
@@ -203,7 +214,7 @@ export default function BankProposalView() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ainda. Comece adicionando um acima.</p>
+            !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ainda. Comece adicionando um acima.</p>
           )}
         </CardContent>
       </Card>

@@ -1,83 +1,25 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for user profiles and role-based access control for roles.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /roles/{roleId}: Stores role definitions.
- * - /user_roles/{userId}: Stores user role assignments.
- *
- * Key Security Decisions:
- * - Users can only access their own profile data.
- * - Role creation and management is restricted (TODO: needs implementation).
- * - User roles are assigned based on the existence of documents in the `/user_roles/{userId}` collection.
- * - List operations are allowed for users to view their roles.
- *
- * Denormalization for Authorization:
- * - User ownership is enforced by matching `request.auth.uid` against the `userId` path parameter, avoiding `get()` calls to user documents.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Controls access to user profile information.
-     * @path /users/{userId}
-     * @allow (create) - User with UID 'user123' can create their profile at /users/user123.
-     * @allow (get, update, delete) - User with UID 'user123' can read, update, and delete their profile at /users/user123.
-     * @deny (create) - User with UID 'user456' cannot create a profile at /users/user123.
-     * @deny (get, update, delete) - User with UID 'user456' cannot read, update, or delete the profile at /users/user123.
-     * @principle Enforces document ownership for all operations.
-     */
+    // Helper function to check if the user is the owner of a document
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rules for the 'users' collection
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+      // A user can read, create, and update their own profile data.
+      allow read, create, update: if isOwner(userId);
+      // Deleting user profiles is not allowed via these rules.
+      allow delete: if false;
+
+      // Rules for the 'bankStatuses' subcollection
+      match /bankStatuses/{bankStatusId} {
+        // The user can perform all operations (create, read, update, delete) on their own bank statuses.
+        allow read, write: if isOwner(userId);
       }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false; // User listing is not permitted.
-
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Controls access to role definitions.
-     * @path /roles/{roleId}
-     * @allow (get, list) - Public read access to role definitions.
-     * @deny (create, update, delete) - Non-admin users cannot create, update, or delete roles.
-     * @principle Restricts write access to roles (TODO: Implement admin role check).
-     */
-    match /roles/{roleId} {
-        // TODO: Implement admin role check
-        allow get, list: if true;
-        allow create, update, delete: if false; // TODO: Add admin validation once roles are implemented.
-    }
-
-    /**
-     * @description Controls access to user role assignments. Existence of a document grants the role to the user.
-     * @path /user_roles/{userId}
-     * @allow (create) - User can assign a role to themselves.
-     * @allow (get, delete) - User can check and delete their own role assignment.
-     * @deny (create, update, delete) - Other users cannot modify role assignments.
-     * @principle Implements DBAC using document existence for role assignment.
-     */
-    match /user_roles/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if false;
-      allow delete: if isOwner(userId) && resource != null;
     }
   }
 }

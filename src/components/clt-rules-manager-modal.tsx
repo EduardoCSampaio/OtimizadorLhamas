@@ -89,6 +89,7 @@ const defaultRuleNames = [
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 const localLogoPath = '/logo.png';
 
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
@@ -106,6 +107,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 // Helper to use Google's image proxy
 const getProxiedUrl = (url: string) => `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=${encodeURIComponent(url)}`;
 
+=======
+>>>>>>> 4842e51 (Try fixing this error: `Console Error: Error: Failed to fetch. Error sou)
 
 >>>>>>> b711987 (Try fixing this error: `Console Error: Error: Failed to fetch. Error sou)
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
@@ -379,85 +382,48 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
 
-  const handleExportToPDF = async () => {
+  const handleExportToPDF = () => {
     if (!cltRules || cltRules.length === 0) {
       toast({ variant: 'destructive', title: 'Nenhuma regra para exportar', description: 'Não há regras cadastradas para este banco.' });
       return;
     }
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
-
-    try {
-      let logoDataUrl : string | null = null;
-      if (bank.logoUrl) {
-        const proxiedLogoUrl = getProxiedUrl(bank.logoUrl);
-        const response = await fetch(proxiedLogoUrl);
-        if (response.ok) {
-          const blob = await response.blob();
-          logoDataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        }
-      }
-      generatePdfContent(doc, { logo: logoDataUrl });
-
-    } catch (error) {
-        console.warn("Could not fetch or add logo, skipping.", error);
-        generatePdfContent(doc, {});
-    }
+    generatePdfContent(doc);
   };
 
-  const generatePdfContent = (doc: jsPDFWithAutoTable, images: { logo?: string | null }) => {
-      
+  const generatePdfContent = (doc: jsPDFWithAutoTable) => {
       let startY = 20;
 
-      if (images.logo) {
-          const imgProps = doc.getImageProperties(images.logo);
-          const pdfWidth = doc.internal.pageSize.getWidth();
-          const isPng = images.logo.startsWith('data:image/png');
-          const format = isPng ? 'PNG' : 'JPEG';
-          
-          const containerSize = 30;
-          const aspectRatio = imgProps.width / imgProps.height;
-          let imgWidth, imgHeight;
-
-          imgWidth = containerSize;
-          imgHeight = containerSize / aspectRatio;
-          if (imgHeight > containerSize) {
-              imgHeight = containerSize;
-              imgWidth = containerSize * aspectRatio;
+      if (bank.logoUrl) {
+          try {
+            const containerSize = 30;
+            const x = (doc.internal.pageSize.getWidth() - containerSize) / 2;
+            doc.addImage(bank.logoUrl, '', x, 15, containerSize, containerSize, undefined, 'FAST');
+            startY = 20 + containerSize;
+          } catch(e) {
+            console.error("Failed to add logo to PDF, skipping.", e);
           }
-
-          const x = (pdfWidth - imgWidth) / 2;
-          doc.addImage(images.logo, format, x, 15, imgWidth, imgHeight, undefined, 'FAST');
-          startY = 20 + imgHeight;
       }
       
-      // Title
       doc.setFontSize(20);
       doc.text(`Regras CLT - ${bank.name}`, doc.internal.pageSize.getWidth() / 2, startY, { align: 'center' });
 
-      // Table
       doc.autoTable({
         startY: startY + 10,
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
-        headStyles: { fillColor: [41, 128, 185] }, // Blue color for header
+        headStyles: { fillColor: [41, 128, 185] },
       });
       
       const pageCount = (doc.internal.pages.length > 1) ? (doc.internal as any).getNumberOfPages() : 1;
-      // Re-run footer logic to be on top
       for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(10);
         doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() - 20, doc.internal.pageSize.getHeight() - 10, { align: 'center'});
       }
       
-      // Save
       doc.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
   }
 

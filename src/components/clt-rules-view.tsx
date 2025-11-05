@@ -95,6 +95,7 @@ const ruleOrder = [
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 type BankDataForPDF = {
     bank: BankMaster;
     rules: Record<string, string>;
@@ -369,6 +370,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 // Helper to use Google's image proxy
 const getProxiedUrl = (url: string) => `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=${encodeURIComponent(url)}`;
 
+=======
+>>>>>>> 4842e51 (Try fixing this error: `Console Error: Error: Failed to fetch. Error sou)
 
 >>>>>>> b711987 (Try fixing this error: `Console Error: Error: Failed to fetch. Error sou)
 export default function CltRulesView({ userRole }: CltRulesViewProps) {
@@ -406,7 +409,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     setIsExporting(true);
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
   
-    // 1. Fetch all rules and image data
     const allRulesData = [];
     for (const bank of banks) {
         const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
@@ -416,55 +418,10 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const rule = doc.data() as CLTRule;
             rulesMap[rule.ruleName] = rule.ruleValue;
         });
-
-        let logoDataUrl = null;
-        if (bank.logoUrl) {
-            try {
-                const proxiedUrl = getProxiedUrl(bank.logoUrl);
-                const response = await fetch(proxiedUrl);
-                 if (response.ok) {
-                    const blob = await response.blob();
-                    logoDataUrl = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result as string);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
-                }
-            } catch (e) {
-                console.error(`Failed to fetch logo for ${bank.name}:`, e);
-            }
-        }
-        allRulesData.push({ bankName: bank.name, rules: rulesMap, logo: logoDataUrl, logoUrl: bank.logoUrl });
-    }
-  
-    // 3. Add Main Logo
-    let mainLogoData: { data: string, width: number, height: number } | null = null;
-    try {
-        const proxiedMainLogoUrl = getProxiedUrl('/logo.png');
-        const response = await fetch(proxiedMainLogoUrl);
-        if (response.ok) {
-            const blob = await response.blob();
-            const base64data = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-            const imgProps = doc.getImageProperties(base64data);
-            const logoSize = 40; 
-            const aspectRatio = imgProps.width / imgProps.height;
-            mainLogoData = {
-                data: base64data,
-                width: logoSize * aspectRatio,
-                height: logoSize
-            };
-        }
-    } catch (error) {
-         console.warn("Main logo not found at /logo.png, skipping.", error);
+        allRulesData.push({ bankName: bank.name, rules: rulesMap, logoUrl: bank.logoUrl });
     }
       
-    // 4. Prepare table data
+    // Prepare table data
     const head = [['Bancos', ...ruleOrder]];
     const body = allRulesData.map(bankData => {
         const row : any[] = [{ content: bankData.bankName, styles: { halign: 'center', valign: 'bottom' } }];
@@ -474,7 +431,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         return row;
     });
   
-    // 5. Generate Table
+    // Generate Table
     doc.autoTable({
         head: head,
         body: body,
@@ -498,37 +455,26 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
                 const bankData = allRulesData[data.row.index];
-                 if (bankData && bankData.logo) {
-                    const isPng = bankData.logo.startsWith('data:image/png');
-                    const extension = isPng ? 'PNG' : 'JPEG';
-                    
-                    const cellPadding = 2;
-                    const containerSize = 20; 
-                    
-                    const imgProps = doc.getImageProperties(bankData.logo);
-                    const aspectRatio = imgProps.width / imgProps.height;
-
-                    let imgWidth, imgHeight;
-                    imgWidth = containerSize;
-                    imgHeight = containerSize / aspectRatio;
-                    if (imgHeight > containerSize) {
-                        imgHeight = containerSize;
-                        imgWidth = containerSize * aspectRatio;
-                    }
-
-                    const x = data.cell.x + (data.cell.width - imgWidth) / 2;
-                    const y = data.cell.y + cellPadding; 
-                    
-                    doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight, undefined, 'FAST');
-                    
-                    if (data.cell.textPos) {
-                      data.cell.textPos.y = y + imgHeight + 4;
+                 if (bankData && bankData.logoUrl) {
+                    try {
+                        const cellPadding = 2;
+                        const containerSize = 20; 
+                        const x = data.cell.x + (data.cell.width - containerSize) / 2;
+                        const y = data.cell.y + cellPadding;
+                        
+                        doc.addImage(bankData.logoUrl, '', x, y, containerSize, containerSize, undefined, 'FAST');
+                        
+                        if (data.cell.textPos) {
+                          data.cell.textPos.y = y + containerSize + 4;
+                        }
+                    } catch (e) {
+                      console.error(`Failed to add image for ${bankData.bankName}:`, e);
+                      // If image fails, text position is still ok.
                     }
                 }
             }
         },
         didDrawPage: (data) => {
-             // Header
             doc.setFontSize(22);
             doc.setFont('helvetica', 'bold');
             doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
@@ -537,11 +483,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             doc.setFont('helvetica', 'normal');
             doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
 
-            if(mainLogoData) {
-                doc.addImage(mainLogoData.data, 'PNG', doc.internal.pageSize.getWidth() - (mainLogoData.width + 15), 8, mainLogoData.width, mainLogoData.height, undefined, 'FAST');
-            }
-
-            // Footer
             const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);
             const text = `Página ${data.pageNumber} de ${pageCount}`;
@@ -551,7 +492,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         }
     });
   
-    // 6. Save
     doc.save(`regras_clt_consolidado.pdf`);
     setIsExporting(false);
   };

@@ -459,7 +459,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     // 4. Prepare table data
     const head = [['Bancos', ...ruleOrder]];
     const body = allRulesData.map(bankData => {
-        const row : any[] = [{ content: bankData.bankName, styles: { halign: 'center', valign: 'middle' } }];
+        const row : any[] = [{ content: bankData.bankName, styles: { halign: 'center', valign: 'bottom' } }];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
@@ -485,7 +485,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             halign: 'center'
         },
         columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 40, minCellHeight: 20 }
+            0: { fontStyle: 'bold', cellWidth: 40, minCellHeight: 25 }
         },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
@@ -493,12 +493,28 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                  if (bankData && bankData.logo && bankData.logoUrl) {
                     const extension = bankData.logoUrl.split('.').pop()?.toUpperCase() || 'PNG';
                     
-                    // Add image with auto-sizing
-                    doc.addImage(bankData.logo as string, extension, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 12, undefined, 'FAST');
+                    const cellPadding = 2;
+                    const cellWidth = data.cell.width - (cellPadding * 2);
+                    const cellHeight = data.cell.height - (cellPadding * 2) - 8; // Reserve space for text
+                    const img = doc.getImageProperties(bankData.logo);
                     
-                    // Adjust text position
+                    const aspectRatio = img.width / img.height;
+                    let imgWidth = cellWidth;
+                    let imgHeight = imgWidth / aspectRatio;
+
+                    if (imgHeight > cellHeight) {
+                        imgHeight = cellHeight;
+                        imgWidth = imgHeight * aspectRatio;
+                    }
+
+                    const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+                    const y = data.cell.y + (cellHeight - imgHeight) / 2 + cellPadding;
+
+                    doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight, undefined, 'FAST');
+                    
+                    // Adjust text position to be at the bottom
                     if (data.cell.textPos) {
-                      data.cell.textPos.y = data.cell.y + data.cell.height - 4;
+                      data.cell.textPos.y = data.cell.y + data.cell.height - cellPadding;
                     }
                 }
             }

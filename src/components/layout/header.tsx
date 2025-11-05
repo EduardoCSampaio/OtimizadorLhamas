@@ -3,6 +3,8 @@
 import {
   Banknote,
   Bell,
+  Building2,
+  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Settings,
@@ -41,8 +43,9 @@ export default function Header() {
   };
 
   const navLinks = [
-    { href: '/', label: 'Painel Principal' },
-    { href: '/regras-clt', label: 'Regras CLT' },
+    { href: '/', label: 'Painel Principal', icon: LayoutDashboard },
+    { href: '/bancos', label: 'Bancos', icon: Building2 },
+    { href: '/regras-clt', label: 'Regras CLT', icon: Settings },
   ];
 
   return (
@@ -108,13 +111,14 @@ export default function Header() {
                <DropdownMenuGroup className="md:hidden">
                  {navLinks.map((link) => (
                     <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
+                        <link.icon className="mr-2 h-4 w-4" />
                         <span>{link.label}</span>
                     </DropdownMenuItem>
                  ))}
                 <DropdownMenuSeparator />
                </DropdownMenuGroup>
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/perfil')}>
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Perfil</span>
                 </DropdownMenuItem>

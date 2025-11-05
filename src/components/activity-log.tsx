@@ -24,7 +24,7 @@ import { ptBR } from 'date-fns/locale';
 import { Skeleton } from './ui/skeleton';
 import { useMemoFirebase } from '@/firebase/provider';
 
-const typeToIcon = {
+const typeToIconMap = {
   CREATE: PlusCircle,
   UPDATE: FilePenLine,
   DELETE: Trash2,
@@ -33,8 +33,8 @@ const typeToIcon = {
   REOPEN: History,
 };
 
-const ActivityIcon = ({ type }: { type: Activity['type'] | 'REOPEN' }) => {
-  const Icon = typeToIcon[type] || FilePenLine;
+const ActivityIcon = ({ type }: { type: Activity['type'] }) => {
+  const Icon = typeToIconMap[type] || FilePenLine;
   return <Icon className="h-4 w-4 text-muted-foreground" />;
 };
 

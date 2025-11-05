@@ -50,7 +50,7 @@
         },
         "categories": {
           "type": "array",
-          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
+          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Inserção, Sem Info).",
           "items": {
             "type": "string",
             "enum": [
@@ -58,6 +58,7 @@
               "FGTS",
               "GOV",
               "INSS",
+              "Inserção",
               "Sem Info"
             ]
           }

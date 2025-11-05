@@ -23,7 +23,7 @@ interface EditBankModalProps {
   onSave: (updatedData: { name: string, logoUrl: string, categories: BankCategory[] }) => Promise<void>;
 }
 
-const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
+const allCategories: BankCategory[] = ['Inserção', 'CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
 
 export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBankModalProps) {
   const { toast } = useToast();

@@ -9,7 +9,7 @@ export interface Proposal {
   phone: string;
 }
 
-export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info';
+export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info' | 'Inserção';
 
 // Represents a master bank entry
 export interface BankMaster {
@@ -50,5 +50,5 @@ export interface Activity {
   description: string;
   timestamp: Timestamp;
   userEmail: string;
-  type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE';
+  type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE' | 'REOPEN';
 }

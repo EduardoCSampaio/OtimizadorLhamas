@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -17,51 +17,33 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import type { BankChecklistStatus, BankMaster, BankCategory } from '@/lib/types';
-import { CheckCircle, History, Landmark, PlusCircle, Edit } from 'lucide-react';
+import { CheckCircle, History, Landmark } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useCollection, useFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, addDoc, orderBy, updateDoc, runTransaction } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useCollection, useFirebase, useUser } from '@/firebase';
+import { collection, doc, serverTimestamp, writeBatch, query, orderBy, updateDoc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
-import EditBankModal from './edit-bank-modal';
 import { createActivityLog } from '@/firebase/user-data';
+import { Skeleton } from './ui/skeleton';
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
-const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
 
 export default function BankProposalView() {
   const { toast } = useToast();
   const { user } = useUser();
   const { firestore } = useFirebase();
-
-  // --- State and Refs ---
-  const [newBankName, setNewBankName] = useState('');
-  const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
-  const [newBankCategories, setNewBankCategories] = useState<BankCategory[]>([]);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedBank, setSelectedBank] = useState<BankMaster | null>(null);
-
-  // User role
-  const userProfileRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
-  const { data: userProfile } = useDoc(userProfileRef);
-  const isMaster = userProfile?.role === 'master';
-
-  // Master list of all banks, ordered by name
+  
   const banksMasterCollectionRef = useMemoFirebase(
       () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
       [firestore]
   );
   const { data: masterBanks, isLoading: isLoadingMasterBanks } = useCollection<BankMaster>(banksMasterCollectionRef);
 
-  // User-specific checklist statuses
   const userChecklistCollectionRef = useMemoFirebase(() => {
       if (!firestore || !user) return null;
       return collection(firestore, 'users', user.uid, 'bankChecklists');
@@ -70,7 +52,6 @@ export default function BankProposalView() {
 
   const [combinedBankData, setCombinedBankData] = useState<CombinedBankStatus[]>([]);
 
-  // --- Effects ---
   // Effect to create checklist items for new banks
   useEffect(() => {
     if (!firestore || !user || !masterBanks || !userChecklist) return;
@@ -93,7 +74,7 @@ export default function BankProposalView() {
     }
   }, [masterBanks, userChecklist, firestore, user]);
 
-  // Effect to combine master bank list with user checklist
+  // Effect to combine master bank list with user checklist, filtering for "Inserção"
   useEffect(() => {
       if (isLoadingMasterBanks || isLoadingChecklist || !masterBanks) {
           setCombinedBankData([]);
@@ -101,17 +82,19 @@ export default function BankProposalView() {
       }
       
       const checklistMap = new Map(userChecklist?.map(item => [item.id, item]));
+
+      const insertionBanks = masterBanks.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('Inserção'));
       
-      const combined = masterBanks.map(bank => {
+      const combined = insertionBanks.map(bank => {
           const checklistStatus = checklistMap.get(bank.id);
           const status = checklistStatus?.status || 'Pendente';
           const insertionDate = checklistStatus?.insertionDate || null;
           const updatedAt = checklistStatus?.updatedAt || bank.updatedAt;
 
           return {
-              ...bank, // master bank data
-              ...checklistStatus, // user checklist data
-              id: bank.id, // ensure master id is used
+              ...bank,
+              ...checklistStatus,
+              id: bank.id, 
               status: status,
               insertionDate: insertionDate,
               updatedAt: updatedAt,
@@ -125,7 +108,6 @@ export default function BankProposalView() {
   }, [masterBanks, userChecklist, isLoadingMasterBanks, isLoadingChecklist]);
 
 
-  // --- Helper Functions ---
   const calculatePriority = (status: 'Pendente' | 'Concluído', insertionDate: any): 'Alta' | 'Média' | 'Baixa' => {
       if (status === 'Pendente' || !insertionDate) {
         return 'Média'; 
@@ -152,6 +134,7 @@ export default function BankProposalView() {
       case 'FGTS': return 'secondary';
       case 'GOV': return 'outline';
       case 'INSS': return 'destructive';
+      case 'Inserção': return 'default';
       default: return 'secondary';
     }
   };
@@ -172,57 +155,6 @@ export default function BankProposalView() {
     }
   }
 
-
-  // --- Event Handlers ---
-
-  const handleNewCategoryChange = (category: BankCategory) => {
-    setNewBankCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const handleAddBank = async () => {
-    if (newBankName.trim() === '') {
-        toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
-        return;
-    }
-     if (newBankCategories.length === 0) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Selecione pelo menos uma categoria.' });
-        return;
-    }
-    if (!firestore || !user) return;
-
-    const masterBankCollection = collection(firestore, 'bankStatuses');
-    const q = query(masterBankCollection, where("name", "==", newBankName.trim()));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Este banco já existe.' });
-        return;
-    }
-
-    const newBankData: Omit<BankMaster, 'id'> = {
-      name: newBankName.trim(),
-      logoUrl: newBankLogoUrl.trim(),
-      categories: newBankCategories,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    addDocumentNonBlocking(masterBankCollection, newBankData);
-    
-    createActivityLog(firestore, user.email || 'unknown', {
-        type: 'CREATE',
-        description: `Adicionou o banco: ${newBankName.trim()}`
-    });
-
-    setNewBankName('');
-    setNewBankLogoUrl('');
-    setNewBankCategories([]);
-    toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
-  };
-
   const handleToggleStatus = (bankId: string) => {
     if (!user || !firestore) return;
     
@@ -241,7 +173,7 @@ export default function BankProposalView() {
     });
 
     createActivityLog(firestore, user.email || 'unknown', {
-        type: newStatus === 'Concluído' ? 'STATUS_CHANGE' : 'UPDATE',
+        type: newStatus === 'Concluído' ? 'STATUS_CHANGE' : 'REOPEN',
         description: `Alterou o status de ${currentBank.name} para ${newStatus}`
     });
 
@@ -250,125 +182,32 @@ export default function BankProposalView() {
         description: `A inserção no banco ${currentBank.name} foi marcada como ${newStatus.toLowerCase()}.`,
     });
   };
-
-  const handleOpenEditModal = (bank: BankMaster) => {
-    setSelectedBank(bank);
-    setIsEditModalOpen(true);
-  };
   
-  const handleUpdateBank = async (updatedData: { name: string; logoUrl: string, categories: BankCategory[] }) => {
-    if (!firestore || !selectedBank || !user) return;
-  
-    const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
-  
-    try {
-      await updateDoc(bankMasterRef, {
-        name: updatedData.name,
-        logoUrl: updatedData.logoUrl,
-        categories: updatedData.categories,
-        updatedAt: serverTimestamp()
-      });
-  
-      createActivityLog(firestore, user.email || 'unknown', {
-          type: 'UPDATE',
-          description: `Atualizou os dados do banco: ${updatedData.name}`
-      });
-
-      toast({
-        title: 'Banco Atualizado!',
-        description: `O banco ${updatedData.name} foi atualizado com sucesso.`,
-      });
-      setIsEditModalOpen(false);
-      setSelectedBank(null);
-    } catch (error) {
-      console.error('Error updating bank:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao atualizar',
-        description: 'Não foi possível atualizar o banco.',
-      });
-    }
-  };
-
   const isLoading = isLoadingMasterBanks || isLoadingChecklist;
 
   return (
     <>
-      {isMaster && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Adicionar Banco</CardTitle>
-            <CardDescription>
-              Insira os detalhes do banco para adicioná-lo à lista de checklist.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bank-name">Nome do Banco</Label>
-                      <Input 
-                        id="bank-name"
-                        type="text" 
-                        placeholder="Ex: Banco do Brasil" 
-                        value={newBankName}
-                        onChange={(e) => setNewBankName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bank-logo">URL da Logo</Label>
-                      <Input 
-                        id="bank-logo"
-                        type="text" 
-                        placeholder="https://.../logo.png" 
-                        value={newBankLogoUrl}
-                        onChange={(e) => setNewBankLogoUrl(e.target.value)}
-                      />
-                    </div>
-                </div>
-                <div className="space-y-4">
-                   <div className="space-y-2">
-                     <Label>Categorias</Label>
-                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 p-2 border rounded-md">
-                        {allCategories.map(cat => (
-                            <div key={cat} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`new-cat-${cat}`}
-                                    checked={newBankCategories.includes(cat)}
-                                    onCheckedChange={() => handleNewCategoryChange(cat)}
-                                />
-                                <Label htmlFor={`new-cat-${cat}`} className="font-normal">{cat}</Label>
-                            </div>
-                        ))}
-                     </div>
-                   </div>
-                </div>
-            </div>
-             <div className="mt-6">
-                <Button onClick={handleAddBank}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Adicionar Banco
-                </Button>
-              </div>
-          </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>Checklist Diário de Inserções</CardTitle>
           <CardDescription>
-            Controle diário da inserção de propostas nos sistemas bancários.
+            Controle diário da inserção de propostas nos sistemas bancários. Apenas bancos marcados com a categoria "Inserção" são exibidos aqui.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && <p>Carregando checklist...</p>}
+          {isLoading && 
+            <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+          }
           {!isLoading && combinedBankData.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Banco</TableHead>
-                  <TableHead>Categorias</TableHead>
+                  <TableHead>Outras Categorias</TableHead>
                   <TableHead>Status e Data da Última Atualização</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
@@ -389,7 +228,7 @@ export default function BankProposalView() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {bank.categories?.map(cat => (
+                        {bank.categories?.filter(c => c !== 'Inserção').map(cat => (
                           <Badge key={cat} variant={getCategoryBadgeVariant(cat)}>{cat}</Badge>
                         ))}
                       </div>
@@ -416,35 +255,16 @@ export default function BankProposalView() {
                           </>
                         )}
                       </Button>
-                      {isMaster && (
-                          <Button 
-                              variant="outline" 
-                              size="icon" 
-                              onClick={() => handleOpenEditModal(bank)}
-                              className="h-8 w-8"
-                          >
-                              <Edit className="h-4 w-4"/>
-                              <span className="sr-only">Editar Banco</span>
-                          </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ao sistema ainda. Comece adicionando um acima.</p>
+            !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco de inserção encontrado. Vá para a página 'Bancos' para adicionar bancos e marcá-los com a categoria "Inserção".</p>
           )}
         </CardContent>
       </Card>
-      {selectedBank && (
-        <EditBankModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          bank={selectedBank}
-          onSave={handleUpdateBank}
-        />
-      )}
     </>
   );
 }

@@ -29,6 +29,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import { useToast } from '@/hooks/use-toast';
+import localLogo from '../../../public/logo.png';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -73,25 +74,27 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   };
 
     const loadImage = (url: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-            if (!url) {
-                return reject(new Error('URL inválida ou ausente.'));
-            }
-            const img = new window.Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => resolve(img);
-            img.onerror = (err) => reject(err);
+      return new Promise((resolve, reject) => {
+          if (!url || typeof url !== 'string') {
+              return reject(new Error('URL inválida ou ausente.'));
+          }
 
-            if (url.startsWith('http')) {
-                const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
-                img.src = proxiedUrl;
-            } else if (url.startsWith('/')) {
-                img.src = `${window.location.origin}${url}`;
-            } else {
-                img.src = url;
-            }
-        });
-    };
+          const img = new window.Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(err);
+          
+          if (url.startsWith('/')) {
+              // For local static imports, the 'src' property holds the path
+              img.src = url;
+          } else if (url.startsWith('http')) {
+              // Use proxy for external URLs to mitigate CORS issues
+              img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+          } else {
+             reject(new Error('Formato de URL não suportado.'));
+          }
+      });
+  };
 
     const handleExportAllToPDF = async () => {
     if (!firestore || !banks || banks.length === 0) {
@@ -105,46 +108,54 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
 
-    const allBanksDataPromises = banks.map(async (bank) => {
-        const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
-        const rulesSnapshot = await getDocs(cltRulesCollectionRef);
-        const rules: Record<string, string> = {};
-        rulesSnapshot.docs.forEach(doc => {
-            const rule = doc.data() as CLTRule;
-            rules[rule.ruleName] = rule.ruleValue;
+    const bankDataPromises = banks.map(bank => {
+        const rulesPromise = getDocs(collection(firestore, 'bankStatuses', bank.id, 'cltRules')).then(snapshot => {
+            const rules: Record<string, string> = {};
+            snapshot.docs.forEach(doc => {
+                const rule = doc.data() as CLTRule;
+                rules[rule.ruleName] = rule.ruleValue;
+            });
+            return rules;
         });
 
-        let logoImage: HTMLImageElement | undefined;
-        if (bank.logoUrl) {
-            try {
-                logoImage = await loadImage(bank.logoUrl);
-            } catch (e) {
-                console.error(`Failed to load image for ${bank.name}:`, e);
-                toast({
-                    variant: "destructive",
-                    title: `Erro ao carregar logo`,
-                    description: `Não foi possível carregar a logo para ${bank.name}.`,
-                });
-            }
-        }
-        return { bank, rules, logoImage };
+        // Use a URL local '/logo.png' ou a URL do banco
+        const logoUrl = bank.name === "2S" ? localLogo.src : bank.logoUrl;
+
+        const imagePromise = logoUrl
+            ? loadImage(logoUrl)
+                .catch(e => {
+                    console.error(`Failed to load image for ${bank.name}:`, e);
+                    toast({
+                        variant: "destructive",
+                        title: `Erro ao carregar logo`,
+                        description: `Não foi possível carregar a logo para ${bank.name}.`,
+                    });
+                    return undefined; // Retorna undefined se a imagem falhar
+                })
+            : Promise.resolve(undefined);
+
+        return Promise.all([rulesPromise, imagePromise]).then(([rules, logoImage]) => ({
+            bank,
+            rules,
+            logoImage,
+        }));
     });
 
-    const allBanksData = await Promise.all(allBanksDataPromises);
+    const allBanksData = await Promise.all(bankDataPromises);
     allBanksData.sort((a, b) => a.bank.name.localeCompare(b.bank.name));
 
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
 
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
-        const row : (string | null)[] = [ bankData.logoImage ? null : bankData.bank.name ];
+        const row : (string)[] = [ bankData.logoImage ? '' : bankData.bank.name ];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
         return row;
     });
 
-    const headerHeight = 30;
+    const headerHeight = 25;
   
     doc.autoTable({
         head: head,
@@ -163,7 +174,12 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             halign: 'center'
         },
         columnStyles: {
-            0: { fontStyle: 'bold', minCellWidth: 40, minCellHeight: 25 }
+            0: { fontStyle: 'bold', minCellWidth: 40 }
+        },
+        didParseCell: (data) => {
+            if (data.column.index === 0 && data.row.section === 'body') {
+                 data.cell.styles.minCellHeight = 25;
+            }
         },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
@@ -172,29 +188,23 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const img = bankData.logoImage;
                     const cell = data.cell;
                     const cellPadding = 2;
-                    const maxImgWidth = cell.width - (2 * cellPadding);
-                    const maxImgHeight = cell.height - (2 * cellPadding);
 
-                    let imgWidth, imgHeight;
+                    const availableWidth = cell.width - (2 * cellPadding);
+                    const availableHeight = cell.height - (2 * cellPadding);
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
 
-                    if (aspectRatio > 1) { // Landscape
-                        imgWidth = maxImgWidth;
+                    let imgWidth, imgHeight;
+
+                    if (availableWidth / aspectRatio <= availableHeight) {
+                        // Fit to width
+                        imgWidth = availableWidth;
                         imgHeight = imgWidth / aspectRatio;
-                    } else { // Portrait or square
-                        imgHeight = maxImgHeight;
+                    } else {
+                        // Fit to height
+                        imgHeight = availableHeight;
                         imgWidth = imgHeight * aspectRatio;
                     }
-
-                    if (imgHeight > maxImgHeight) {
-                        imgHeight = maxImgHeight;
-                        imgWidth = imgHeight * aspectRatio;
-                    }
-                    if (imgWidth > maxImgWidth) {
-                        imgWidth = maxImgWidth;
-                        imgHeight = imgWidth / aspectRatio;
-                    }
-
+                    
                     const x = cell.x + (cell.width - imgWidth) / 2;
                     const y = cell.y + (cell.height - imgHeight) / 2;
                     
@@ -204,7 +214,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         },
         didDrawPage: (data) => {
             // Header
-            doc.setFontSize(22);
+            doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
             doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
             
@@ -307,5 +317,3 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     </>
   );
 }
-
-    

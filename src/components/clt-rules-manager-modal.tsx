@@ -31,6 +31,7 @@ import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown, BookUp } from 'lucid
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
+import localLogo from '../../../public/logo.png';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -138,25 +139,27 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
   
     const loadImage = (url: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-            if (!url) {
-                return reject(new Error('URL inválida ou ausente.'));
-            }
-            const img = new window.Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => resolve(img);
-            img.onerror = (err) => reject(err);
+      return new Promise((resolve, reject) => {
+          if (!url || typeof url !== 'string') {
+              return reject(new Error('URL inválida ou ausente.'));
+          }
 
-            if (url.startsWith('http')) {
-                const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
-                img.src = proxiedUrl;
-            } else if (url.startsWith('/')) {
-                img.src = `${window.location.origin}${url}`;
-            } else {
-                img.src = url;
-            }
-        });
-    };
+          const img = new window.Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(err);
+          
+          if (url.startsWith('/')) {
+              // For local static imports, the 'src' property holds the path
+              img.src = url;
+          } else if (url.startsWith('http')) {
+              // Use proxy for external URLs to mitigate CORS issues
+              img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+          } else {
+             reject(new Error('Formato de URL não suportado.'));
+          }
+      });
+  };
 
   const handleExportToPDF = async () => {
     if (!cltRules || cltRules.length === 0) {
@@ -166,11 +169,13 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     
     setIsExporting(true);
     const docPDF = new jsPDF() as jsPDFWithAutoTable;
+
+    const logoUrl = bank.name === "2S" ? localLogo.src : bank.logoUrl;
     
     let logoImage: HTMLImageElement | null = null;
-    if (bank.logoUrl) {
+    if (logoUrl) {
       try {
-        logoImage = await loadImage(bank.logoUrl);
+        logoImage = await loadImage(logoUrl);
       } catch (e) {
         console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
         toast({
@@ -223,12 +228,12 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 console.error("Error adding image to PDF:", e);
                 // Fallback to text if image fails
                 docPDF.setFontSize(20);
-                docPDF.text(`${bank.name}`, pageWidth / 2, startY, { align: 'center' });
+                docPDF.text(bank.name, pageWidth / 2, startY, { align: 'center' });
                 startY += 10;
             }
         } else {
              docPDF.setFontSize(20);
-             docPDF.text(`${bank.name}`, pageWidth / 2, startY, { align: 'center' });
+             docPDF.text(bank.name, pageWidth / 2, startY, { align: 'center' });
              startY += 10;
         }
 
@@ -243,7 +248,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
           docPDF.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, docPDF.internal.pageSize.getHeight() - 10);
       };
       
-      const tableStartY = 60;
+      const tableStartY = logoImage ? 60 : 40;
 
       docPDF.autoTable({
         head: [['Regra', 'Valor']],

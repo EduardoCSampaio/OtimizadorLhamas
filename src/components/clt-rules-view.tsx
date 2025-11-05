@@ -498,13 +498,15 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const y = data.cell.y + 2;
                     doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight);
                     // Adjust text position
-                    data.cell.textPos.y = y + imgHeight + 4;
+                    if (data.cell.textPos) {
+                      data.cell.textPos.y = y + imgHeight + 4;
+                    }
                 }
             }
         },
         didDrawPage: (data) => {
             // Footer
-            const pageCount = doc.internal.pages.length - 1;
+            const pageCount = (doc.internal as any).pages.length - 1;
             doc.setFontSize(10);
             const text = `Página ${data.pageNumber} de ${pageCount}`;
             const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;

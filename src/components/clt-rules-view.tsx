@@ -584,7 +584,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
             // Draw Company Logo on the Right
             if (companyLogoImage) {
-                const logoHeight = 25; 
+                const logoHeight = 25;
                 const aspectRatio = companyLogoImage.naturalWidth / companyLogoImage.naturalHeight;
                 const logoWidth = logoHeight * aspectRatio;
                 const logoX = pageWidth - logoWidth - pageMargin;

@@ -81,35 +81,30 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
     
-    // Helper function to check if the user has the 'master' role
     function isMaster() {
-      // Assumes the user's role is stored in a 'role' field in their user document
       return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'master';
     }
 
     match /users/{userId} {
-      // A user can read their own profile.
       allow read: if isOwner(userId);
-      // A user can create their own profile upon signup. The 'role' must be 'user' unless it's the master email.
       allow create: if request.auth.uid == userId && 
                        (request.resource.data.email == 'eduardo.campos@lhamascred.com.br' ? request.resource.data.role == 'master' : request.resource.data.role == 'user');
-      // A user cannot change their own role. Only a master user can change other users' roles (future rule).
-      // For now, only allow displayName updates.
       allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName']);
-      
-      allow delete: if false; // Deleting user profiles is not allowed.
+      allow delete: if false;
 
-      match /bankStatuses/{bankStatusId} {
-        // The user can perform all operations on their own bank statuses.
+      match /bankChecklists/{checklistId} {
         allow read, write: if isOwner(userId);
       }
     }
-
-    match /cltRules/{ruleId} {
-      // Any authenticated user can read the rules.
+    
+    match /bankStatuses/{bankStatusId} {
       allow read: if request.auth != null;
-      // Only users with the 'master' role can create, update, or delete rules.
       allow write: if isMaster();
+
+      match /cltRules/{ruleId} {
+        allow read: if request.auth != null;
+        allow write: if isMaster();
+      }
     }
   }
 }

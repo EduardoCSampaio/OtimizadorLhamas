@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import NextImage from 'next/image';
+=======
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
 import {
   Dialog,
   DialogContent,
@@ -23,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { BankMaster, CLTRule } from '@/lib/types';
 import { useCollection, useFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+<<<<<<< HEAD
 import { collection, serverTimestamp, doc, orderBy, query } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
 import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown, BookUp } from 'lucide-react';
@@ -35,6 +39,11 @@ import { useUser } from '@/firebase/provider';
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
 }
+=======
+import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { useMemoFirebase } from '@/firebase/provider';
+import { PlusCircle, Trash2, Edit, Save, XCircle } from 'lucide-react';
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
 
 interface CltRulesManagerModalProps {
   bank: BankMaster;
@@ -43,6 +52,7 @@ interface CltRulesManagerModalProps {
   userRole: 'master' | 'user' | null;
 }
 
+<<<<<<< HEAD
 const defaultRuleNames = [
     'Situação',
     'Idade',
@@ -65,19 +75,37 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
   const cltRulesCollectionRef = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'bankStatuses', bank.id, 'cltRules'), orderBy('ruleName')) : null),
+=======
+export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
+  const { toast } = useToast();
+  const { firestore } = useFirebase();
+  const isMaster = userRole === 'master';
+
+  const cltRulesCollectionRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'bankStatuses', bank.id, 'cltRules') : null),
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
     [firestore, bank.id]
   );
   
   const { data: cltRules, isLoading } = useCollection<CLTRule>(cltRulesCollectionRef);
 
+<<<<<<< HEAD
   const [newRules, setNewRules] = useState<{ ruleName: string, ruleValue: string }[]>([]);
   const [editingRule, setEditingRule] = useState<CLTRule | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+=======
+  const [newRules, setNewRules] = useState([{ ruleName: '', ruleValue: '' }]);
+  const [editingRule, setEditingRule] = useState<CLTRule | null>(null);
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
 
   useEffect(() => {
     // Reset state when modal opens for a new bank
     if (isOpen) {
+<<<<<<< HEAD
       setNewRules([]);
+=======
+      setNewRules([{ ruleName: '', ruleValue: '' }]);
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
       setEditingRule(null);
     }
   }, [isOpen]);
@@ -98,7 +126,11 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
 
   const handleSaveNewRules = () => {
+<<<<<<< HEAD
     if (!cltRulesCollectionRef || !user) return;
+=======
+    if (!cltRulesCollectionRef) return;
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
     const rulesToSave = newRules.filter(rule => rule.ruleName.trim() !== '' && rule.ruleValue.trim() !== '');
     if (rulesToSave.length === 0) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Nenhuma regra válida para salvar.' });
@@ -114,6 +146,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       addDocumentNonBlocking(cltRulesCollectionRef, newRuleData);
     });
 
+<<<<<<< HEAD
     createActivityLog(firestore, user.email || 'unknown', {
         type: 'CREATE',
         description: `Adicionou ${rulesToSave.length} nova(s) regra(s) CLT para o banco ${bank.name}.`
@@ -127,22 +160,36 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     if (!editingRule || !firestore || !user) return;
 
     const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', editingRule.id);
+=======
+    toast({ title: 'Sucesso!', description: `${rulesToSave.length} nova(s) regra(s) salva(s) para ${bank.name}.` });
+    setNewRules([{ ruleName: '', ruleValue: '' }]);
+  };
+  
+  const handleUpdateRule = () => {
+    if (!editingRule || !cltRulesCollectionRef) return;
+
+    const ruleDocRef = doc(cltRulesCollectionRef, editingRule.id);
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
     updateDocumentNonBlocking(ruleDocRef, {
         ruleName: editingRule.ruleName,
         ruleValue: editingRule.ruleValue,
         updatedAt: serverTimestamp()
     });
+<<<<<<< HEAD
 
     createActivityLog(firestore, user.email || 'unknown', {
         type: 'UPDATE',
         description: `Atualizou a regra CLT "${editingRule.ruleName}" para o banco ${bank.name}.`
     });
+=======
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
     
     toast({ title: 'Regra Atualizada!', description: 'A regra foi atualizada com sucesso.' });
     setEditingRule(null);
   }
 
   const handleDeleteRule = (ruleId: string) => {
+<<<<<<< HEAD
     if (!firestore || !user) return;
     const ruleToDelete = cltRules?.find(r => r.id === ruleId);
     if (!ruleToDelete) return;
@@ -285,10 +332,19 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     setNewRules(prev => [...prev, ...rulesToLoad]);
   };
   
+=======
+    if (!cltRulesCollectionRef) return;
+    const ruleDocRef = doc(cltRulesCollectionRef, ruleId);
+    deleteDocumentNonBlocking(ruleDocRef);
+    toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
+  };
+  
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
+<<<<<<< HEAD
           <div className="flex items-center gap-4">
              {bank.logoUrl && <NextImage src={bank.logoUrl} alt={`${bank.name} logo`} width={40} height={40} className="h-10 w-10 object-contain rounded-md" />}
             <DialogTitle>Regras CLT para: {bank.name}</DialogTitle>
@@ -303,6 +359,11 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 {isExporting ? 'Exportando...' : 'Exportar PDF'}
               </Button>
             </div>
+=======
+          <DialogTitle>Regras CLT para: {bank.name}</DialogTitle>
+          <DialogDescription>
+            {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
           </DialogDescription>
         </DialogHeader>
         
@@ -361,11 +422,16 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                     <div key={index} className="flex items-center gap-2">
                       <Input placeholder="Nome da Regra" value={rule.ruleName} onChange={e => handleNewRuleChange(index, 'ruleName', e.target.value)} />
                       <Input placeholder="Valor da Regra" value={rule.ruleValue} onChange={e => handleNewRuleChange(index, 'ruleValue', e.target.value)} />
+<<<<<<< HEAD
                       <Button variant="ghost" size="icon" onClick={() => handleRemoveNewRuleInput(index)}>
+=======
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveNewRuleInput(index)} disabled={newRules.length <= 1}>
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   ))}
+<<<<<<< HEAD
                   <div className='flex justify-between items-start'>
                     <div>
                         <Button variant="outline" size="sm" onClick={handleAddNewRuleInput}>
@@ -381,6 +447,16 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                             Salvar Novas Regras
                         </Button>
                     )}
+=======
+                  <div className='flex justify-between'>
+                    <Button variant="outline" size="sm" onClick={handleAddNewRuleInput}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Outra
+                    </Button>
+                    <Button size="sm" onClick={handleSaveNewRules}>
+                        <Save className='mr-2 h-4 w-4'/>
+                        Salvar Novas Regras
+                    </Button>
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
                   </div>
                 </div>
               </>

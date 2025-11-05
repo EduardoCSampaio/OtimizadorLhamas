@@ -375,7 +375,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CLTRule",
       "type": "object",
-      "description": "Represents a specific business rule for CLT calculations or validations.",
+      "description": "Represents a specific business rule for CLT calculations or validations, associated with a specific bank.",
       "properties": {
         "id": {
           "type": "string",
@@ -501,12 +501,13 @@
         }
       },
       {
-        "path": "/users/{userId}/bankStatuses/{bankStatusId}",
+        "path": "/bankStatuses/{bankStatusId}",
         "definition": {
           "entityName": "BankStatus",
           "schema": {
             "$ref": "#/backend/entities/BankStatus"
           },
+<<<<<<< HEAD
 <<<<<<< HEAD
           "description": "Stores role definitions and associated permissions. Access restricted to administrative users.",
           "params": [
@@ -526,6 +527,8 @@
           "schema": {
             "$ref": "#/backend/entities/BankStatus"
           },
+=======
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
           "description": "Stores the master list of banks available in the system. Writable only by 'master' role, readable by all authenticated users.",
           "params": [
             {
@@ -554,6 +557,7 @@
         ]
       },
       {
+<<<<<<< HEAD
         "path": "/activityLogs/{logId}",
         "definition": {
           "entityName": "ActivityLog",
@@ -576,6 +580,15 @@
 =======
           "description": "Stores the checklist of bank proposal statuses for a specific user. Each user can only access their own checklist.",
 >>>>>>> 0af121b (File changes)
+=======
+        "path": "/users/{userId}/bankChecklists/{checklistId}",
+        "definition": {
+          "entityName": "BankStatus",
+          "schema": {
+            "$ref": "#/backend/entities/BankStatus"
+          },
+          "description": "Stores the user-specific checklist status for each bank. Each user can only access their own checklist.",
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
           "params": [
             {
               "name": "userId",
@@ -585,6 +598,7 @@
 =======
             },
             {
+<<<<<<< HEAD
               "name": "bankStatusId",
               "description": "The unique identifier for the bank status entry."
 >>>>>>> 0af121b (File changes)
@@ -604,6 +618,10 @@
             {
               "name": "ruleId",
               "description": "The unique identifier for the CLT rule."
+=======
+              "name": "checklistId",
+              "description": "The unique identifier for the bank checklist entry, likely matching the bankStatusId."
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
             }
           ]
         }
@@ -612,6 +630,7 @@
 <<<<<<< HEAD
     ]
   }
+<<<<<<< HEAD
 <<<<<<< HEAD
 }
 =======
@@ -628,3 +647,6 @@
 =======
 }
 >>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
+=======
+}
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)

@@ -24,7 +24,7 @@ import { setDocumentNonBlocking } from './non-blocking-updates';
  * @param firestore - The Firestore instance.
  * @param user - The Firebase Auth user object.
  */
-export async function createUserProfile(firestore: Firestore, user: User) {
+export function createUserProfile(firestore: Firestore, user: User) {
   const userRef = doc(firestore, 'users', user.uid);
 
   // Assign 'master' role if the email matches, otherwise 'user'
@@ -34,6 +34,7 @@ export async function createUserProfile(firestore: Firestore, user: User) {
   const userData = {
     id: user.uid,
     email: user.email,
+<<<<<<< HEAD
 <<<<<<< HEAD
     displayName: user.displayName || user.email?.split('@')[0],
     role: role,
@@ -83,10 +84,14 @@ export function createActivityLog(
     addDocumentNonBlocking(activityLogCollection, activityData);
 =======
     displayName: user.displayName,
+=======
+    displayName: user.displayName || user.email?.split('@')[0],
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
     role: role,
   };
 
   // Use the non-blocking update which also handles permission errors
+  // Use merge: false to ensure we are creating, not updating
   setDocumentNonBlocking(userRef, userData, { merge: false });
 >>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
 }

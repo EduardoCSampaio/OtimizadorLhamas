@@ -21,6 +21,7 @@ export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info' | 'Inser
 export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6' | 'Custom';
 >>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
 
+<<<<<<< HEAD
 export interface Promotora {
   id: string;
   name: string;
@@ -67,17 +68,35 @@ export interface BankStatusDocument {
   category: BankCategory;
   status: 'Pendente' | 'Concluído';
   insertionDate: Timestamp | null;
+=======
+// Represents a master bank entry
+export interface BankMaster {
+  id: string;
+  name: string;
+  category: BankCategory;
+>>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
-export interface CLTRuleDocument {
+// Represents the user-specific checklist status for a bank
+export interface BankChecklistStatus {
+  id: string; // This ID should correspond to the BankMaster ID
+  name: string; // Denormalized for easy display
+  status: 'Pendente' | 'Concluído';
+  insertionDate: Timestamp | null;
+  updatedAt: Timestamp;
+}
+
+
+export interface CLTRule {
   id: string;
   ruleName: string;
   ruleValue: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
 
 export interface PriorityTask {
   id: string;

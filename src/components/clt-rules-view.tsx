@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { BookCopy, Settings, Landmark, FileDown } from 'lucide-react';
 import { useCollection, useFirebase } from '@/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import type { BankMaster, CLTRule } from '@/lib/types';
 import { useMemoFirebase } from '@/firebase/provider';
 import CltRulesManagerModal from './clt-rules-manager-modal';
@@ -36,6 +36,11 @@ interface CltRulesViewProps {
   userRole: 'master' | 'user' | null;
 }
 
+const ruleOrder = [
+    'Situação', 'Idade', 'Margem e Segurança', 'Limites', 'Prazo', 
+    'Empréstimos', 'Tempo Empresa', 'Tempo CNPJ', 'Funcionários na Empresa'
+];
+
 export default function CltRulesView({ userRole }: CltRulesViewProps) {
   const { firestore } = useFirebase();
   const { toast } = useToast();
@@ -46,36 +51,20 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   const isMaster = userRole === 'master';
 
   const bankStatusesCollectionRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'bankStatuses') : null),
+    () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
     [firestore]
   );
 
   const { data: banks, isLoading } =
     useCollection<BankMaster>(bankStatusesCollectionRef);
 
-  const sortedBanks = banks?.sort((a, b) => a.name.localeCompare(b.name));
-
   const handleManageRules = (bank: BankMaster) => {
     setSelectedBank(bank);
     setIsModalOpen(true);
   };
 
-  const generatePdfContent = (doc: jsPDFWithAutoTable, finalY: number) => {
-      // Footer
-      const pageCount = doc.internal.pages.length - 1; // jsPDF-autotable adds pages
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(10);
-        const text = `Página ${i} de ${pageCount}`;
-        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
-        const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
-        doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
-      }
-      return finalY;
-  };
-
   const handleExportAllToPDF = async () => {
-    if (!firestore || !sortedBanks || sortedBanks.length === 0) {
+    if (!firestore || !banks || banks.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Nenhum banco para exportar',
@@ -85,9 +74,31 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     }
 
     setIsExporting(true);
-    const doc = new jsPDF() as jsPDFWithAutoTable;
+    const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
+
+    // 1. Fetch all rules for all banks
+    const allRulesData: { bankName: string, rules: Record<string, string> }[] = [];
+    for (const bank of banks) {
+      const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
+      const rulesSnapshot = await getDocs(cltRulesCollectionRef);
+      const rulesMap: Record<string, string> = {};
+      rulesSnapshot.docs.forEach(doc => {
+        const rule = doc.data() as CLTRule;
+        rulesMap[rule.ruleName] = rule.ruleValue;
+      });
+      allRulesData.push({ bankName: bank.name, rules: rulesMap });
+    }
+
+    // 2. Prepare Header
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
     
-    // Add logo placeholder
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+
+    // 3. Add Logo
     try {
       const response = await fetch('/logo.png');
       if (response.ok) {
@@ -99,56 +110,55 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
           reader.readAsDataURL(blob);
         });
         const base64data = reader.result as string;
-        doc.addImage(base64data, 'PNG', 15, 10, 30, 15);
+        // Adjust position for landscape
+        doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 45, 8, 30, 15);
       }
     } catch (error) {
        console.warn("Logo not found at /logo.png, skipping.");
     }
     
-    // Add title
-    doc.setFontSize(22);
-    doc.text('Regras de Negócio Consolidadas - CLT', doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
+    // 4. Prepare table data
+    const head = [['Bancos', ...ruleOrder]];
+    const body = allRulesData.map(bankData => {
+        const row = [bankData.bankName];
+        ruleOrder.forEach(ruleName => {
+            row.push(bankData.rules[ruleName] || 'Não avaliado');
+        });
+        return row;
+    });
 
-    let finalY = 40; // Start position for the first table
+    // 5. Generate Table
+    doc.autoTable({
+      head: head,
+      body: body,
+      startY: 30,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [22, 22, 22], // Dark header
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        valign: 'middle'
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', halign: 'center' } // Bank names bold
+      },
+      didDrawPage: (data) => {
+        // Footer
+        const pageCount = doc.internal.pages.length - 1;
+        doc.setFontSize(10);
+        const text = `Página ${data.pageNumber} de ${pageCount}`;
+        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
+        const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
+        doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
+      }
+    });
 
-    for (const bank of sortedBanks) {
-        const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
-        const rulesSnapshot = await getDocs(cltRulesCollectionRef);
-        const cltRules = rulesSnapshot.docs.map(doc => doc.data() as CLTRule);
-
-        if (cltRules.length > 0) {
-            // Add a separator space if it's not the first bank
-            if (finalY > 40) {
-                finalY += 5; 
-            }
-
-            // Check if there is enough space for the title and table header
-            if (finalY + 20 > doc.internal.pageSize.getHeight()) {
-              doc.addPage();
-              finalY = 20;
-            }
-
-            doc.setFontSize(14);
-            doc.text(bank.name, 14, finalY);
-            finalY += 5;
-
-            doc.autoTable({
-                startY: finalY,
-                head: [['Regra', 'Valor']],
-                body: cltRules.map(rule => [rule.ruleName, rule.ruleValue]),
-                theme: 'striped',
-                headStyles: { fillColor: [41, 128, 185] }, // Blue
-                didDrawPage: (data) => {
-                    // We handle footer generation at the end
-                }
-            });
-
-            // Update finalY to the position after the table
-            finalY = (doc as any).lastAutoTable.finalY;
-        }
-    }
-
-    generatePdfContent(doc, finalY);
+    // 6. Save
     doc.save(`regras_clt_consolidado.pdf`);
     setIsExporting(false);
   };
@@ -187,7 +197,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedBanks?.map((bank) => (
+                {banks?.map((bank) => (
                   <TableRow key={bank.id}>
                     <TableCell className="font-medium flex items-center gap-2">
                       <Landmark className="h-4 w-4 text-muted-foreground" />

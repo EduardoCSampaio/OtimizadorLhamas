@@ -170,7 +170,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       doc.autoTable({
         startY: 40,
         head: [['Regra', 'Valor']],
-        body: cltRules.map(rule => [rule.ruleName, rule.ruleValue]),
+        body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] }, // Blue color for header
       });
@@ -305,5 +305,3 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     </Dialog>
   );
 }
-
-    

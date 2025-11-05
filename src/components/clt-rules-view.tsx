@@ -110,8 +110,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
           reader.readAsDataURL(blob);
         });
         const base64data = reader.result as string;
-        // Adjust position for landscape
-        doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 55, 8, 40, 20); // Increased size
+        // Adjust position for landscape and increase size
+        doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 65, 8, 50, 25);
       }
     } catch (error) {
        console.warn("Logo not found at /logo.png, skipping.");
@@ -131,7 +131,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     doc.autoTable({
       head: head,
       body: body,
-      startY: 30,
+      startY: 35, // Adjust startY to give more space for header and logo
       theme: 'grid',
       headStyles: { 
         fillColor: [22, 22, 22], // Dark header

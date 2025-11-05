@@ -239,6 +239,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
+        autoPaging: 'text',
         headStyles: { fillColor: [41, 128, 185], textColor: [255,255,255] },
         bodyStyles: { textColor: [0, 0, 0] },
         didDrawPage: (data) => {

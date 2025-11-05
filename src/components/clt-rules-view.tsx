@@ -155,7 +155,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         head: head,
         body: body,
         theme: 'grid',
-        autoPaging: 'text',
+        avoidRowSplit: true,
         headStyles: { 
             fillColor: [22, 22, 22],
             textColor: [255, 255, 255],

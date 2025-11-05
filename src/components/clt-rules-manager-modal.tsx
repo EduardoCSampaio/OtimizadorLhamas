@@ -389,17 +389,27 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     deleteDocumentNonBlocking(ruleDocRef);
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
-
+  
   const loadImage = (url: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
-        if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-            return reject(new Error('URL inválida ou ausente.'));
-        }
-        const img = new window.Image();
-        img.crossOrigin = 'Anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = (err) => reject(err);
+      if (!url || typeof url !== 'string') {
+        return reject(new Error('URL da imagem inválida ou ausente.'));
+      }
+  
+      const img = new window.Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
+  
+      // Handle local and external URLs
+      if (url.startsWith('http')) {
+        // For external images, use a CORS proxy to avoid tainted canvas
+        const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+        img.src = proxiedUrl;
+      } else {
+        // For local images (e.g., /logo.png), use them directly
         img.src = url;
+      }
     });
   };
 
@@ -414,16 +424,16 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     
     let logoImage: HTMLImageElement | null = null;
     if (bank.logoUrl) {
-        try {
-            logoImage = await loadImage(bank.logoUrl);
-        } catch (e) {
-            console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao carregar logo',
-                description: `Não foi possível carregar a logo para o banco ${bank.name}. Verifique a URL.`,
-            });
-        }
+      try {
+        logoImage = await loadImage(bank.logoUrl);
+      } catch (e) {
+        console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao carregar logo',
+          description: `Não foi possível carregar a logo para o banco ${bank.name}. A URL pode estar incorreta ou inacessível.`,
+        });
+      }
     }
     
     generatePdfContent(docPDF, logoImage);
@@ -431,7 +441,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
 
   const generatePdfContent = (docPDF: jsPDFWithAutoTable, logoImage: HTMLImageElement | null) => {
-      const addHeader = (data: any) => {
+      const addHeader = () => {
         const pageWidth = docPDF.internal.pageSize.getWidth();
         let startY = 15;
 
@@ -455,12 +465,16 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             const x = (pageWidth - renderWidth) / 2;
 
             try {
-                const format = logoImage.src.toLowerCase().endsWith('.png') ? 'PNG' : 'JPEG';
-                docPDF.addImage(logoImage, format, x, startY, renderWidth, renderHeight, undefined, 'FAST');
+                const canvas = document.createElement('canvas');
+                canvas.width = logoImage.naturalWidth;
+                canvas.height = logoImage.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(logoImage, 0, 0);
+                const dataUrl = canvas.toDataURL('image/png');
+                docPDF.addImage(dataUrl, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
                 startY += renderHeight + 5;
             } catch (e) {
                 console.error("Error adding image to PDF:", e);
-                 // If image fails, draw text
                 docPDF.setFontSize(20);
                 docPDF.text(`${bank.name}`, pageWidth / 2, startY, { align: 'center' });
                 startY += 10;
@@ -488,10 +502,10 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] },
         didDrawPage: (data) => {
-            addHeader(data);
+            addHeader();
             addFooter(data);
         },
-        margin: { top: 55 }
+        margin: { top: 60 } // Increased margin to prevent overlap
       });
       
       docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);

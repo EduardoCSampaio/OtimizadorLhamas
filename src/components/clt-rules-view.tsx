@@ -1,4 +1,5 @@
 
+
 'use client';
 
 <<<<<<< HEAD
@@ -411,18 +412,18 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     setIsModalOpen(true);
   };
 
-    const loadImage = (url: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-            if (!url || typeof url !== 'string') {
-                return reject(new Error('URL inválida'));
-            }
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => resolve(img);
-            img.onerror = (err) => reject(err);
-            img.src = url;
-        });
-    };
+  const loadImage = (url: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+          if (!url || typeof url !== 'string') {
+              return reject(new Error('URL inválida ou ausente.'));
+          }
+          const img = new window.Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(err);
+          img.src = url;
+      });
+  };
 
   const handleExportAllToPDF = async () => {
     if (!firestore || !banks || banks.length === 0) {
@@ -436,47 +437,44 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
     
-    // Pre-fetch all rules and pre-load all images
     const allBanksData: BankDataForPDF[] = [];
-    const loadImagePromises: Promise<void>[] = [];
-
+    const loadDataPromises: Promise<void>[] = [];
 
     for (const bank of banks) {
-        const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
-        const rulesSnapshot = await getDocs(cltRulesCollectionRef);
-        const rulesMap: Record<string, string> = {};
-        rulesSnapshot.docs.forEach(doc => {
-            const rule = doc.data() as CLTRule;
-            rulesMap[rule.ruleName] = rule.ruleValue;
-        });
+        const promise = (async () => {
+            const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
+            const rulesSnapshot = await getDocs(cltRulesCollectionRef);
+            const rulesMap: Record<string, string> = {};
+            rulesSnapshot.docs.forEach(doc => {
+                const rule = doc.data() as CLTRule;
+                rulesMap[rule.ruleName] = rule.ruleValue;
+            });
 
-        const bankData: BankDataForPDF = { bankName: bank.name, rules: rulesMap, logoUrl: bank.logoUrl };
-        allBanksData.push(bankData);
-
-        if (bank.logoUrl) {
-            loadImagePromises.push(
-                loadImage(bank.logoUrl)
-                    .then(img => {
-                        bankData.logoImage = img;
-                    })
-                    .catch(e => {
-                        console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
-                        toast({
-                          variant: 'destructive',
-                          title: 'Erro ao carregar logo',
-                          description: `Não foi possível carregar a logo para o banco ${bank.name}. Verifique a URL.`,
-                        });
-                    })
-            );
-        }
+            const bankData: BankDataForPDF = { bankName: bank.name, rules: rulesMap, logoUrl: bank.logoUrl };
+            
+            if (bank.logoUrl) {
+                try {
+                    bankData.logoImage = await loadImage(bank.logoUrl);
+                } catch (e) {
+                    console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
+                    toast({
+                      variant: 'destructive',
+                      title: 'Erro ao carregar logo',
+                      description: `Não foi possível carregar a logo para o banco ${bank.name}.`,
+                    });
+                }
+            }
+            allBanksData.push(bankData);
+        })();
+        loadDataPromises.push(promise);
     }
     
-    // Wait for all images to be loaded before generating the PDF
-    await Promise.all(loadImagePromises);
+    await Promise.all(loadDataPromises);
+
+    allBanksData.sort((a, b) => a.bankName.localeCompare(b.bankName));
 
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
 
-    // Prepare table data
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
         const row : any[] = [{ content: bankData.bankName, styles: { halign: 'center', valign: 'bottom' } }];
@@ -486,7 +484,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         return row;
     });
   
-    // Generate Table
     doc.autoTable({
         head: head,
         body: body,
@@ -514,29 +511,31 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const img = bankData.logoImage;
                     const cell = data.cell;
                     
-                    const boxSize = 20;
+                    const cellPadding = 2;
+                    const maxImgWidth = cell.width - (2 * cellPadding);
+                    const maxImgHeight = 20;
+                    
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
-                    
-                    let imgWidth, imgHeight;
-                    if (aspectRatio > 1) { // Wider than tall
-                        imgWidth = boxSize;
-                        imgHeight = boxSize / aspectRatio;
-                    } else { // Taller than wide or square
-                        imgHeight = boxSize;
-                        imgWidth = boxSize * aspectRatio;
-                    }
-                    
-                    const x = cell.x + (cell.width - imgWidth) / 2;
-                    const y = cell.y + 2; 
 
+                    let imgWidth = maxImgWidth;
+                    let imgHeight = imgWidth / aspectRatio;
+
+                    if (imgHeight > maxImgHeight) {
+                        imgHeight = maxImgHeight;
+                        imgWidth = imgHeight * aspectRatio;
+                    }
+
+                    const x = cell.x + (cell.width - imgWidth) / 2;
+                    const y = cell.y + cellPadding;
+                    
                     try {
                         doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-
-                        if (cell.textPos) {
-                          cell.textPos.y = y + imgHeight + 4;
-                        }
                     } catch (e) {
-                      console.error(`Failed to add image for ${bankData.bankName}:`, e);
+                        console.error(`Failed to add image for ${bankData.bankName}:`, e);
+                    }
+
+                    if (cell.textPos) {
+                      cell.textPos.y = y + imgHeight + 4;
                     }
                 }
             }

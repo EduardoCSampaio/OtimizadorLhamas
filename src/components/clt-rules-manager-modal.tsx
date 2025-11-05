@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -393,9 +394,9 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   const loadImage = (url: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
         if (!url || typeof url !== 'string') {
-            return reject(new Error('URL inválida'));
+            return reject(new Error('URL inválida ou ausente.'));
         }
-        const img = new Image();
+        const img = new window.Image();
         img.crossOrigin = 'Anonymous';
         img.onload = () => resolve(img);
         img.onerror = (err) => reject(err);
@@ -478,7 +479,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             addHeader(data);
             addFooter(data);
         },
-        margin: { top: 55 }
+        margin: { top: logoImage ? 55 : 30 }
       });
       
       docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);

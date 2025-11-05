@@ -387,49 +387,82 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
+    // Load background image
+    const backgroundImageUrl = 'https://images.unsplash.com/photo-1598387993441-2b724565b493?q=80&w=2070';
+    let backgroundImageData: string | null = null;
     try {
+        const proxiedBgUrl = getProxiedUrl(backgroundImageUrl);
+        const bgResponse = await fetch(proxiedBgUrl);
+        if (bgResponse.ok) {
+            const blob = await bgResponse.blob();
+            backgroundImageData = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+    } catch(e) {
+        console.warn("Could not load PDF background image.", e);
+    }
+    
+    try {
+      let logoDataUrl : string | null = null;
       if (bank.logoUrl) {
         const proxiedLogoUrl = getProxiedUrl(bank.logoUrl);
         const response = await fetch(proxiedLogoUrl);
         if (response.ok) {
           const blob = await response.blob();
-          const reader = new FileReader();
-          const dataUrl = await new Promise<string>((resolve, reject) => {
+          logoDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          
-          const imgProps = doc.getImageProperties(dataUrl);
-          const pdfWidth = doc.internal.pageSize.getWidth();
-          const format = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-          
-          const containerSize = 30; // Standard size for the logo container
-          const aspectRatio = imgProps.width / imgProps.height;
-          let imgWidth = containerSize;
-          let imgHeight = containerSize / aspectRatio;
-
-          if (imgHeight > containerSize) {
-            imgHeight = containerSize;
-            imgWidth = containerSize * aspectRatio;
-          }
-
-          const x = (pdfWidth - imgWidth) / 2;
-          doc.addImage(dataUrl, format, x, 15, imgWidth, imgHeight, undefined, 'FAST');
-          generatePdfContent(doc, 20 + imgHeight);
-        } else {
-           generatePdfContent(doc, 20);
         }
-      } else {
-        generatePdfContent(doc, 20);
       }
+      generatePdfContent(doc, { logo: logoDataUrl, background: backgroundImageData });
+
     } catch (error) {
         console.warn("Could not fetch or add logo, skipping.", error);
-        generatePdfContent(doc, 20);
+        generatePdfContent(doc, { background: backgroundImageData });
     }
   };
 
-  const generatePdfContent = (doc: jsPDFWithAutoTable, startY: number) => {
+  const generatePdfContent = (doc: jsPDFWithAutoTable, images: { logo?: string | null, background?: string | null }) => {
+      const pageCount = (doc.internal.pages.length > 1) ? (doc.internal as any).getNumberOfPages() : 1;
+      for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        if (images.background) {
+            const { width, height } = doc.internal.pageSize;
+            doc.addImage(images.background, 'JPEG', 0, 0, width, height, undefined, 'FAST');
+        }
+      }
+      
+      let startY = 20;
+
+      if (images.logo) {
+          const imgProps = doc.getImageProperties(images.logo);
+          const pdfWidth = doc.internal.pageSize.getWidth();
+          const isPng = images.logo.startsWith('data:image/png');
+          const format = isPng ? 'PNG' : 'JPEG';
+          
+          const containerSize = 30;
+          const aspectRatio = imgProps.width / imgProps.height;
+          let imgWidth, imgHeight;
+
+          imgWidth = containerSize;
+          imgHeight = containerSize / aspectRatio;
+          if (imgHeight > containerSize) {
+              imgHeight = containerSize;
+              imgWidth = containerSize * aspectRatio;
+          }
+
+          const x = (pdfWidth - imgWidth) / 2;
+          doc.addImage(images.logo, format, x, 15, imgWidth, imgHeight, undefined, 'FAST');
+          startY = 20 + imgHeight;
+      }
+      
       // Title
       doc.setFontSize(20);
       doc.text(`Regras CLT - ${bank.name}`, doc.internal.pageSize.getWidth() / 2, startY, { align: 'center' });
@@ -441,16 +474,21 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] }, // Blue color for header
+        didDrawPage: (data) => {
+            if(images.background){
+                const { width, height } = doc.internal.pageSize;
+                doc.addImage(images.background, 'JPEG', 0, 0, width, height, undefined, 'FAST');
+            }
+        }
       });
-
-      // Footer
-      const pageCount = (doc.internal.pages.length > 1) ? (doc.internal as any).getNumberOfPages() : 1;
+      
+      // Re-run footer logic to be on top
       for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(10);
         doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() - 20, doc.internal.pageSize.getHeight() - 10, { align: 'center'});
       }
-
+      
       // Save
       doc.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
   }

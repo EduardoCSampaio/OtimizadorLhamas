@@ -1,6 +1,9 @@
 'use client';
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 2483d55 (Ok ok, agora precisamos configurar para nas sessões por exemplo regras-c)
 import { useState, useMemo } from 'react';
 import NextImage from 'next/image';
 =======
@@ -144,6 +147,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     return banks?.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('CLT')) || [];
   }, [banks]);
 
+<<<<<<< HEAD
 
   const handleManageRules = (bank: BankMaster) => {
     setSelectedBank(bank);
@@ -408,6 +412,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
   const { data: banks, isLoading } =
     useCollection<BankMaster>(bankStatusesCollectionRef);
+=======
+>>>>>>> 2483d55 (Ok ok, agora precisamos configurar para nas sessões por exemplo regras-c)
 
   const handleManageRules = (bank: BankMaster) => {
     setSelectedBank(bank);
@@ -445,8 +451,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
 
-    // Deep copy of banks to avoid mutation issues
-    const banksCopy = JSON.parse(JSON.stringify(banks)) as BankMaster[];
+    const banksCopy: BankMaster[] = JSON.parse(JSON.stringify(banks));
 
     const dataForPdf: BankDataForPDF[] = await Promise.all(
         banksCopy.map(async (bank: BankMaster) => {
@@ -456,11 +461,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     logoImage = await loadImage(bank.logoUrl);
                 } catch (e) {
                     console.error(`Could not load image for ${bank.name}:`, e);
-                    toast({
-                        variant: 'destructive',
-                        title: `Erro ao carregar logo`,
-                        description: `Não foi possível carregar a logo para ${bank.name}.`,
-                    });
                 }
             }
 
@@ -501,7 +501,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             fillColor: [22, 22, 22],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            halign: 'center'
+            halign: 'center',
+            valign: 'middle',
         },
         styles: {
             fontSize: 8,
@@ -565,11 +566,11 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.text('Crédito do Trabalhador', pageMargin, 18);
+            doc.text('Crédito do Trabalhador', pageMargin, 23);
             
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text('Confira as atualizações e oportunidades', pageMargin, 23);
+            doc.text('Confira as atualizações e oportunidades', pageMargin, 28);
 
             if (companyLogoImage) {
                 const logoHeight = 25; 
@@ -587,7 +588,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const textX = (pageWidth - textWidth) / 2;
             doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
         },
-        margin: { top: headerHeight }
+        margin: { top: headerHeight + 10 }
     });
   
     doc.save(`regras_clt_consolidado.pdf`);
@@ -606,8 +607,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 <CardTitle>Regras de Negócio - CLT</CardTitle>
                 <CardDescription>
                     {isMaster
-                    ? 'Gerencie as regras de negócio para cada banco.'
-                    : 'Consulte as regras de negócio para cada banco.'}
+                    ? 'Gerencie as regras de negócio para os bancos da categoria CLT.'
+                    : 'Consulte as regras de negócio para os bancos da categoria CLT.'}
                 </CardDescription>
                 </div>
             </div>
@@ -619,7 +620,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         </CardHeader>
         <CardContent>
           {isLoading && <p>Carregando bancos...</p>}
-          {!isLoading && banks && banks.length > 0 ? (
+          {!isLoading && cltBanks && cltBanks.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -628,6 +629,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
                 {sortedRules?.map((rule) => (
@@ -694,6 +696,9 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 =======
                 {banks?.map((bank) => (
 >>>>>>> 5642f0d (No pdf, queria algo mais parecido com isso, acho que seria interessante.)
+=======
+                {cltBanks?.map((bank) => (
+>>>>>>> 2483d55 (Ok ok, agora precisamos configurar para nas sessões por exemplo regras-c)
                   <TableRow key={bank.id}>
                     <TableCell className="font-medium">
                        <div className="flex items-center gap-3">
@@ -725,6 +730,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
               <p className="text-muted-foreground text-sm p-4 text-center">
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                 Nenhum banco com a categoria 'CLT' encontrado.
 =======
                 {isMaster
@@ -734,6 +740,9 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 =======
                 Nenhum banco cadastrado no sistema.
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+                Nenhum banco com a categoria 'CLT' encontrado.
+>>>>>>> 2483d55 (Ok ok, agora precisamos configurar para nas sessões por exemplo regras-c)
               </p>
             )
           )}

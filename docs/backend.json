@@ -87,7 +87,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CLTRule",
       "type": "object",
-      "description": "Represents a specific business rule for CLT calculations or validations.",
+      "description": "Represents a specific business rule for CLT calculations or validations, associated with a specific bank.",
       "properties": {
         "id": {
           "type": "string",
@@ -145,37 +145,55 @@
         }
       },
       {
-        "path": "/users/{userId}/bankStatuses/{bankStatusId}",
+        "path": "/bankStatuses/{bankStatusId}",
         "definition": {
           "entityName": "BankStatus",
           "schema": {
             "$ref": "#/backend/entities/BankStatus"
           },
-          "description": "Stores the checklist of bank proposal statuses for a specific user. Each user can only access their own checklist.",
+          "description": "Stores the master list of banks available in the system. Writable only by 'master' role, readable by all authenticated users.",
+          "params": [
+            {
+              "name": "bankStatusId",
+              "description": "The unique identifier for the bank status entry."
+            }
+          ]
+        },
+        "subcollections": [
+          {
+            "path": "/cltRules/{ruleId}",
+            "definition": {
+              "entityName": "CLTRule",
+              "schema": {
+                "$ref": "#/backend/entities/CLTRule"
+              },
+              "description": "Stores CLT rules for a specific bank. Writable only by 'master' role, readable by all authenticated users.",
+              "params": [
+                {
+                  "name": "ruleId",
+                  "description": "The unique identifier for the CLT rule."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "path": "/users/{userId}/bankChecklists/{checklistId}",
+        "definition": {
+          "entityName": "BankStatus",
+          "schema": {
+            "$ref": "#/backend/entities/BankStatus"
+          },
+          "description": "Stores the user-specific checklist status for each bank. Each user can only access their own checklist.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user."
             },
             {
-              "name": "bankStatusId",
-              "description": "The unique identifier for the bank status entry."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/cltRules/{ruleId}",
-        "definition": {
-          "entityName": "CLTRule",
-          "schema": {
-            "$ref": "#/backend/entities/CLTRule"
-          },
-          "description": "Stores global CLT rules. Writable only by 'master' role, readable by all authenticated users.",
-          "params": [
-            {
-              "name": "ruleId",
-              "description": "The unique identifier for the CLT rule."
+              "name": "checklistId",
+              "description": "The unique identifier for the bank checklist entry, likely matching the bankStatusId."
             }
           ]
         }

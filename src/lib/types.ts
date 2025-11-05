@@ -11,36 +11,33 @@ export interface Proposal {
 
 export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6' | 'Custom';
 
-export interface Bank {
+// Represents a master bank entry
+export interface BankMaster {
   id: string;
   name: string;
   category: BankCategory;
-  icon: LucideIcon;
-}
-
-export interface BankStatus extends Bank {
-  status: 'Pendente' | 'Concluído';
-  insertionDate?: Date;
-  priority: 'Alta' | 'Média' | 'Baixa';
-}
-
-export interface BankStatusDocument {
-  id: string;
-  name: string;
-  category: BankCategory;
-  status: 'Pendente' | 'Concluído';
-  insertionDate: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
-export interface CLTRuleDocument {
+// Represents the user-specific checklist status for a bank
+export interface BankChecklistStatus {
+  id: string; // This ID should correspond to the BankMaster ID
+  name: string; // Denormalized for easy display
+  status: 'Pendente' | 'Concluído';
+  insertionDate: Timestamp | null;
+  updatedAt: Timestamp;
+}
+
+
+export interface CLTRule {
   id: string;
   ruleName: string;
   ruleValue: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
 
 export interface PriorityTask {
   id: string;

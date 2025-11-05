@@ -19,77 +19,160 @@ import {
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { BankStatus, BankStatusDocument } from '@/lib/types';
+import type { BankChecklistStatus, BankMaster } from '@/lib/types';
 import { CheckCircle, History, Landmark, PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
+
+type CombinedBankStatus = BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
 export default function BankProposalView() {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
 
-  const bankStatusesCollectionRef = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
-      return collection(firestore, 'users', user.uid, 'bankStatuses');
-  }, [firestore, user]);
-
-  const { data: bankStatuses, isLoading } = useCollection<BankStatusDocument>(bankStatusesCollectionRef);
+  // --- State and Refs ---
   const [newBankName, setNewBankName] = useState('');
 
-  const calculatePriority = (bank: BankStatusDocument): 'Alta' | 'Média' | 'Baixa' => {
-    const insertionDate = bank.insertionDate ? bank.insertionDate.toDate() : null;
-    if (bank.status === 'Pendente' || !insertionDate) {
-        const creationDate = bank.createdAt ? bank.createdAt.toDate() : new Date();
-        const daysSinceCreation = differenceInDays(new Date(), creationDate);
-        if (daysSinceCreation >= 2) return 'Alta';
-        return 'Média';
+  // Master list of all banks
+  const banksMasterCollectionRef = useMemoFirebase(
+      () => (firestore ? collection(firestore, 'bankStatuses') : null),
+      [firestore]
+  );
+  const { data: masterBanks, isLoading: isLoadingMasterBanks } = useCollection<BankMaster>(banksMasterCollectionRef);
+
+  // User-specific checklist statuses
+  const userChecklistCollectionRef = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      return collection(firestore, 'users', user.uid, 'bankChecklists');
+  }, [firestore, user]);
+  const { data: userChecklist, isLoading: isLoadingChecklist } = useCollection<BankChecklistStatus>(userChecklistCollectionRef);
+
+  const [combinedBankData, setCombinedBankData] = useState<CombinedBankStatus[]>([]);
+
+  // --- Effects ---
+  // Effect to create checklist items for new banks
+  useEffect(() => {
+    if (!firestore || !user || !masterBanks || !userChecklist) return;
+
+    const checklistIds = new Set(userChecklist.map(item => item.id));
+    const banksToAdd = masterBanks.filter(bank => !checklistIds.has(bank.id));
+
+    if (banksToAdd.length > 0) {
+        const batch = writeBatch(firestore);
+        banksToAdd.forEach(bank => {
+            const checklistRef = doc(firestore, 'users', user.uid, 'bankChecklists', bank.id);
+            const newChecklistItem: Omit<BankChecklistStatus, 'id'> = {
+                name: bank.name,
+                status: 'Pendente',
+                insertionDate: null,
+                updatedAt: serverTimestamp()
+            };
+            batch.set(checklistRef, newChecklistItem);
+        });
+        batch.commit().catch(error => console.error("Error adding new banks to user checklist:", error));
     }
+  }, [masterBanks, userChecklist, firestore, user]);
+
+  // Effect to combine master bank list with user checklist
+  useEffect(() => {
+      if (isLoadingMasterBanks || isLoadingChecklist || !masterBanks) {
+          setCombinedBankData([]);
+          return;
+      }
+      
+      const checklistMap = new Map(userChecklist?.map(item => [item.id, item]));
+      
+      const combined = masterBanks.map(bank => {
+          const checklistStatus = checklistMap.get(bank.id);
+          return {
+              id: bank.id,
+              name: bank.name,
+              status: checklistStatus?.status || 'Pendente',
+              insertionDate: checklistStatus?.insertionDate || null,
+              updatedAt: checklistStatus?.updatedAt || bank.updatedAt,
+              priority: calculatePriority(checklistStatus)
+          };
+      });
+
+      combined.sort((a, b) => a.name.localeCompare(b.name));
+      setCombinedBankData(combined);
+
+  }, [masterBanks, userChecklist, isLoadingMasterBanks, isLoadingChecklist]);
+
+
+  // --- Helper Functions ---
+  const calculatePriority = (item: BankChecklistStatus | undefined): 'Alta' | 'Média' | 'Baixa' => {
+    if (!item || item.status === 'Pendente' || !item.insertionDate) {
+      return 'Média'; 
+    }
+    const insertionDate = item.insertionDate.toDate();
     const daysSinceUpdate = differenceInDays(new Date(), insertionDate);
     if (daysSinceUpdate >= 2) return 'Alta';
     if (daysSinceUpdate >= 1) return 'Média';
     return 'Baixa';
   };
 
-  const sortedBankStatuses = bankStatuses?.map(b => ({...b, priority: calculatePriority(b)})).sort((a, b) => a.name.localeCompare(b.name));
+  const getPriorityBadgeVariant = (priority: 'Alta' | 'Média' | 'Baixa') => {
+    switch (priority) {
+      case 'Alta': return 'destructive';
+      case 'Média': return 'secondary';
+      default: return 'outline';
+    }
+  };
 
-  const handleAddBank = () => {
-    if (newBankName.trim() === '' || !user || !bankStatusesCollectionRef) {
-        toast({
-            variant: 'destructive',
-            title: 'Erro',
-            description: 'O nome do banco não pode estar vazio.',
-        });
+  const renderStatus = (status: CombinedBankStatus) => {
+    const insertionDate = status.insertionDate ? status.insertionDate.toDate() : null;
+    switch(status.status) {
+        case 'Pendente': 
+            return <Badge variant="outline">Pendente</Badge>;
+        case 'Concluído': 
+            return (
+                <div className="flex flex-col">
+                    <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle className="mr-2 h-3 w-3"/>Concluído</Badge>
+                    {insertionDate && <span className="text-xs text-muted-foreground mt-1">{format(insertionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
+                </div>
+            );
+    }
+  }
+
+
+  // --- Event Handlers ---
+  const handleAddBank = async () => {
+    if (newBankName.trim() === '' || !banksMasterCollectionRef || !firestore) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
+        return;
+    }
+     // Check if bank already exists
+    const q = query(banksMasterCollectionRef, where("name", "==", newBankName.trim()));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Este banco já existe.' });
         return;
     }
 
-    const newBank: Omit<BankStatusDocument, 'id'> = {
-      name: newBankName,
+    const newBank: Omit<BankMaster, 'id'> = {
+      name: newBankName.trim(),
       category: 'Custom',
-      status: 'Pendente',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      insertionDate: null,
     };
 
-    addDocumentNonBlocking(bankStatusesCollectionRef, newBank);
+    addDocumentNonBlocking(banksMasterCollectionRef, newBank);
     setNewBankName('');
-    toast({
-      title: 'Banco Adicionado!',
-      description: `O banco ${newBankName} foi adicionado à lista.`,
-    });
+    toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado à lista mestre.` });
   };
 
   const handleToggleStatus = (bankId: string) => {
     if (!user || !firestore) return;
     
-    const bankDocRef = doc(firestore, 'users', user.uid, 'bankStatuses', bankId);
-    const currentBank = bankStatuses?.find(b => b.id === bankId);
+    const bankDocRef = doc(firestore, 'users', user.uid, 'bankChecklists', bankId);
+    const currentBank = combinedBankData.find(b => b.id === bankId);
     if (!currentBank) return;
 
     const isCompleted = currentBank.status === 'Concluído';
@@ -107,32 +190,8 @@ export default function BankProposalView() {
         description: `A inserção no banco ${currentBank.name} foi marcada como ${newStatus.toLowerCase()}.`,
     });
   };
-
-  const getPriorityBadgeVariant = (priority: 'Alta' | 'Média' | 'Baixa') => {
-    switch (priority) {
-      case 'Alta':
-        return 'destructive';
-      case 'Média':
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
-
-  const renderStatus = (status: BankStatusDocument) => {
-    const insertionDate = status.insertionDate ? status.insertionDate.toDate() : null;
-    switch(status.status) {
-        case 'Pendente': 
-            return <Badge variant="outline">Pendente</Badge>;
-        case 'Concluído': 
-            return (
-                <div className="flex flex-col">
-                    <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle className="mr-2 h-3 w-3"/>Concluído</Badge>
-                    {insertionDate && <span className="text-xs text-muted-foreground mt-1">{format(insertionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
-                </div>
-            );
-    }
-  }
+  
+  const isLoading = isUserLoading || isLoadingMasterBanks || isLoadingChecklist;
 
   return (
     <>
@@ -140,7 +199,7 @@ export default function BankProposalView() {
         <CardHeader>
           <CardTitle>Adicionar Banco</CardTitle>
           <CardDescription>
-            Insira o nome do banco para adicioná-lo à sua lista de checklist.
+            Insira o nome do banco para adicioná-lo à lista de checklist de todos os usuários.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -168,8 +227,8 @@ export default function BankProposalView() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && <p>Carregando bancos...</p>}
-          {!isLoading && bankStatuses && bankStatuses.length > 0 ? (
+          {isLoading && <p>Carregando checklist...</p>}
+          {!isLoading && combinedBankData.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -180,7 +239,7 @@ export default function BankProposalView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedBankStatuses?.map(bank => (
+                {combinedBankData.map(bank => (
                   <TableRow key={bank.id}>
                     <TableCell className="font-medium flex items-center gap-2">
                       <Landmark className="h-4 w-4 text-muted-foreground" />
@@ -214,7 +273,7 @@ export default function BankProposalView() {
               </TableBody>
             </Table>
           ) : (
-            !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ainda. Comece adicionando um acima.</p>
+            !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ao sistema ainda. Comece adicionando um acima.</p>
           )}
         </CardContent>
       </Card>

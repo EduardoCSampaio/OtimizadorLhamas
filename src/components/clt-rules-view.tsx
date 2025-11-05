@@ -5,7 +5,11 @@ import { useState, useMemo } from 'react';
 import NextImage from 'next/image';
 =======
 import { useState } from 'react';
+<<<<<<< HEAD
 >>>>>>> d71a7cb (Foi, agora vamos seguir para criação de mais coisas, vamos criar as "Reg)
+=======
+import Image from 'next/image';
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
 import {
   Card,
   CardContent,
@@ -391,23 +395,41 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
       });
       return;
     }
-
+  
     setIsExporting(true);
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
-
-    // 1. Fetch all rules for all banks
-    const allRulesData: { bankName: string, rules: Record<string, string> }[] = [];
+  
+    // 1. Fetch all rules and image data
+    const allRulesData = [];
     for (const bank of banks) {
-      const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
-      const rulesSnapshot = await getDocs(cltRulesCollectionRef);
-      const rulesMap: Record<string, string> = {};
-      rulesSnapshot.docs.forEach(doc => {
-        const rule = doc.data() as CLTRule;
-        rulesMap[rule.ruleName] = rule.ruleValue;
-      });
-      allRulesData.push({ bankName: bank.name, rules: rulesMap });
-    }
+        const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
+        const rulesSnapshot = await getDocs(cltRulesCollectionRef);
+        const rulesMap: Record<string, string> = {};
+        rulesSnapshot.docs.forEach(doc => {
+            const rule = doc.data() as CLTRule;
+            rulesMap[rule.ruleName] = rule.ruleValue;
+        });
 
+        let logoBase64 = null;
+        if (bank.logoUrl) {
+            try {
+                const response = await fetch(bank.logoUrl);
+                 if (response.ok) {
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    logoBase64 = await new Promise((resolve, reject) => {
+                        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                }
+            } catch (e) {
+                console.error(`Failed to fetch logo for ${bank.name}:`, e);
+            }
+        }
+        allRulesData.push({ bankName: bank.name, rules: rulesMap, logo: logoBase64, logoUrl: bank.logoUrl });
+    }
+  
     // 2. Prepare Header
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
@@ -416,67 +438,81 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
-
-    // 3. Add Logo
+  
+    // 3. Add Main Logo
     try {
-      const response = await fetch('/logo.png');
-      if (response.ok) {
-        const blob = await response.blob();
-        const reader = new FileReader();
-        await new Promise((resolve, reject) => {
-          reader.onloadend = resolve;
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        const base64data = reader.result as string;
-        // Adjust position for landscape and increase size
-        doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 65, 8, 50, 25);
-      }
+        const response = await fetch('/logo.png');
+        if (response.ok) {
+            const blob = await response.blob();
+            const base64data = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+            doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 95, 8, 80, 40);
+        }
     } catch (error) {
-       console.warn("Logo not found at /logo.png, skipping.");
+         console.warn("Logo not found at /logo.png, skipping.");
     }
-    
+      
     // 4. Prepare table data
     const head = [['Bancos', ...ruleOrder]];
     const body = allRulesData.map(bankData => {
-        const row = [bankData.bankName];
+        const row : any[] = [{ content: bankData.bankName, styles: { halign: 'center', valign: 'middle' } }];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
         return row;
     });
-
+  
     // 5. Generate Table
     doc.autoTable({
-      head: head,
-      body: body,
-      startY: 35, // Adjust startY to give more space for header and logo
-      theme: 'grid',
-      headStyles: { 
-        fillColor: [22, 22, 22], // Dark header
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        halign: 'center'
-      },
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        valign: 'middle'
-      },
-      columnStyles: {
-        0: { fontStyle: 'bold', halign: 'center' } // Bank names bold
-      },
-      didDrawPage: (data) => {
-        // Footer
-        const pageCount = doc.internal.pages.length - 1;
-        doc.setFontSize(10);
-        const text = `Página ${data.pageNumber} de ${pageCount}`;
-        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
-        const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
-        doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
-      }
+        head: head,
+        body: body,
+        startY: 50,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [22, 22, 22],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'center'
+        },
+        styles: {
+            fontSize: 8,
+            cellPadding: 2,
+            valign: 'middle',
+            halign: 'center'
+        },
+        columnStyles: {
+            0: { fontStyle: 'bold', cellWidth: 40 }
+        },
+        didDrawCell: (data) => {
+            if (data.column.index === 0 && data.row.section === 'body') {
+                const bankData = allRulesData[data.row.index];
+                 if (bankData && bankData.logo && bankData.logoUrl) {
+                    const extension = bankData.logoUrl.split('.').pop()?.toUpperCase() || 'PNG';
+                    const imgHeight = 8;
+                    const imgWidth = 8;
+                    const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+                    const y = data.cell.y + 2;
+                    doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight);
+                    // Adjust text position
+                    data.cell.textPos.y = y + imgHeight + 4;
+                }
+            }
+        },
+        didDrawPage: (data) => {
+            // Footer
+            const pageCount = doc.internal.pages.length - 1;
+            doc.setFontSize(10);
+            const text = `Página ${data.pageNumber} de ${pageCount}`;
+            const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
+            const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
+            doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
+        }
     });
-
+  
     // 6. Save
     doc.save(`regras_clt_consolidado.pdf`);
     setIsExporting(false);
@@ -583,9 +619,15 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 {banks?.map((bank) => (
 >>>>>>> 5642f0d (No pdf, queria algo mais parecido com isso, acho que seria interessante.)
                   <TableRow key={bank.id}>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      <Landmark className="h-4 w-4 text-muted-foreground" />
-                      {bank.name}
+                    <TableCell className="font-medium">
+                       <div className="flex items-center gap-3">
+                        {bank.logoUrl ? (
+                          <Image src={bank.logoUrl} alt={`${bank.name} logo`} width={24} height={24} className="h-6 w-6 object-contain"/>
+                        ) : (
+                          <Landmark className="h-6 w-6 text-muted-foreground" />
+                        )}
+                        <span>{bank.name}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

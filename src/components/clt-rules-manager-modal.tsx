@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from 'react';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import NextImage from 'next/image';
 =======
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+import Image from 'next/image';
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
 import {
   Dialog,
   DialogContent,
@@ -376,21 +380,17 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
-    // Logo placeholder - assuming logo is in public/logo.png
     try {
       const response = await fetch('/logo.png');
-      if (response.ok) {
-        const blob = await response.blob();
-        const reader = new FileReader();
+      const blob = await response.blob();
+      const reader = new FileReader();
+      const base64data = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
         reader.readAsDataURL(blob);
-        reader.onloadend = () => {
-          const base64data = reader.result as string;
-          doc.addImage(base64data, 'PNG', 15, 10, 40, 20); // Increased size
-          generatePdfContent(doc);
-        };
-      } else {
-        generatePdfContent(doc);
-      }
+      });
+      doc.addImage(base64data, 'PNG', 15, 10, 80, 40);
+      generatePdfContent(doc);
     } catch (error) {
         console.warn("Logo not found at /logo.png, skipping. Add your logo to the public folder.");
         generatePdfContent(doc);
@@ -404,7 +404,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
       // Table
       doc.autoTable({
-        startY: 40,
+        startY: 60,
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
@@ -412,7 +412,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       });
 
       // Footer
-      const pageCount = doc.internal.pages.length - 1; // jsPDF-autotable adds pages, so get the count
+      const pageCount = doc.internal.pages.length; 
       for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(10);
@@ -442,6 +442,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
+<<<<<<< HEAD
 <<<<<<< HEAD
           <div className="flex items-center gap-4">
              {bank.logoUrl && <NextImage src={bank.logoUrl} alt={`${bank.name} logo`} width={40} height={40} className="h-10 w-10 object-contain rounded-md" />}
@@ -477,6 +478,12 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 >>>>>>> 363034c (Será que é possível fazer uma parte de exportação em pdf dessas regras?)
           </DialogDescription>
 =======
+=======
+          <div className="flex items-center gap-4">
+             {bank.logoUrl && <Image src={bank.logoUrl} alt={`${bank.name} logo`} width={40} height={40} className="h-10 w-10 object-contain rounded-md" />}
+            <DialogTitle>Regras CLT para: {bank.name}</DialogTitle>
+          </div>
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
           <div className="flex justify-between items-center pt-2">
             <DialogDescription>
                 {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}

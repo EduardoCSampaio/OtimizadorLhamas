@@ -34,6 +34,7 @@ export interface Promotora {
 export interface BankMaster {
   id: string;
   name: string;
+<<<<<<< HEAD
   logoUrl: string;
   categories: BankCategory[];
   promotoraId?: string; // Optional: ID of the associated Promotora
@@ -65,6 +66,9 @@ export interface CLTRule {
 export interface BankStatusDocument {
   id: string;
   name: string;
+=======
+  logoUrl?: string;
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
   category: BankCategory;
   status: 'Pendente' | 'Concluído';
   insertionDate: Timestamp | null;
@@ -83,6 +87,7 @@ export interface BankMaster {
 export interface BankChecklistStatus {
   id: string; // This ID should correspond to the BankMaster ID
   name: string; // Denormalized for easy display
+  logoUrl?: string; // Denormalized for easy display
   status: 'Pendente' | 'Concluído';
   insertionDate: Timestamp | null;
   updatedAt: Timestamp;

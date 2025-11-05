@@ -1,6 +1,10 @@
 "use client";
 
+<<<<<<< HEAD
 import { useState, useEffect, useMemo } from 'react';
+=======
+import { useState, useEffect } from 'react';
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
 import Image from 'next/image';
 import {
   Card,
@@ -24,6 +28,7 @@ import type { BankChecklistStatus, BankMaster, BankCategory, UserProfile } from 
 import { CheckCircle, History, Landmark, RefreshCw } from 'lucide-react';
 =======
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { BankChecklistStatus, BankMaster } from '@/lib/types';
@@ -97,16 +102,20 @@ import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, ad
 >>>>>>> deacb7a (Os bancos não estão ficando salvos, poderia corrigir para mim?)
 =======
 import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, addDoc, orderBy } from 'firebase/firestore';
+<<<<<<< HEAD
 >>>>>>> 73e0d8b (E poderia também manter os bancos em ordem alfabetica sempre?)
 import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
 import { useMemoFirebase } from '@/firebase/provider';
 
 type CombinedBankStatus = BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
 export default function BankProposalView() {
   const { toast } = useToast();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const { firestore } = useFirebase();
 
 <<<<<<< HEAD
@@ -121,6 +130,7 @@ export default function BankProposalView() {
   // --- State and Refs ---
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
   const [newBankName, setNewBankName] = useState('');
+  const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
 
   // Master list of all banks, ordered by name
   const banksMasterCollectionRef = useMemoFirebase(
@@ -143,7 +153,6 @@ export default function BankProposalView() {
   useEffect(() => {
     if (!firestore || !user || !masterBanks) return;
 
-    // Use a local snapshot of userChecklist to avoid dependency issues if it's not ready
     const currentChecklist = userChecklist || [];
     const checklistIds = new Set(currentChecklist.map(item => item.id));
     const banksToAdd = masterBanks.filter(bank => !checklistIds.has(bank.id));
@@ -154,6 +163,7 @@ export default function BankProposalView() {
             const checklistRef = doc(firestore, 'users', user.uid, 'bankChecklists', bank.id);
             const newChecklistItem: Omit<BankChecklistStatus, 'id'> = {
                 name: bank.name,
+                logoUrl: bank.logoUrl || '',
                 status: 'Pendente',
                 insertionDate: null,
                 updatedAt: serverTimestamp()
@@ -162,7 +172,7 @@ export default function BankProposalView() {
         });
         batch.commit().catch(error => console.error("Error adding new banks to user checklist:", error));
     }
-  }, [masterBanks, userChecklist, firestore, user]); // Keeping dependencies, but logic inside is safer
+  }, [masterBanks, userChecklist, firestore, user]);
 
   // Effect to combine master bank list with user checklist
   useEffect(() => {
@@ -182,6 +192,7 @@ export default function BankProposalView() {
           return {
               id: bank.id,
               name: bank.name,
+              logoUrl: bank.logoUrl,
               status: status,
               insertionDate: insertionDate,
               updatedAt: updatedAt,
@@ -189,7 +200,6 @@ export default function BankProposalView() {
           };
       });
 
-      // Although masterBanks is sorted, we re-sort here to be safe
       combined.sort((a, b) => a.name.localeCompare(b.name));
       setCombinedBankData(combined);
 
@@ -201,7 +211,6 @@ export default function BankProposalView() {
       if (status === 'Pendente' || !insertionDate) {
         return 'Média'; 
       }
-      // firebase.firestore.Timestamp has a toDate() method
       const date = insertionDate.toDate ? insertionDate.toDate() : new Date();
       const daysSinceUpdate = differenceInDays(new Date(), date);
 
@@ -236,12 +245,13 @@ export default function BankProposalView() {
 
   // --- Event Handlers ---
   const handleAddBank = async () => {
-    const masterBankCollection = collection(firestore, 'bankStatuses');
-    if (newBankName.trim() === '' || !masterBankCollection || !firestore || !userChecklistCollectionRef) {
+    if (newBankName.trim() === '') {
         toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
         return;
     }
-     // Check if bank already exists
+    if (!firestore) return;
+
+    const masterBankCollection = collection(firestore, 'bankStatuses');
     const q = query(masterBankCollection, where("name", "==", newBankName.trim()));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
@@ -251,15 +261,16 @@ export default function BankProposalView() {
 
     const newBankData: Omit<BankMaster, 'id'> = {
       name: newBankName.trim(),
+      logoUrl: newBankLogoUrl.trim(),
       category: 'Custom',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
-    // Use blocking addDoc here to get the ID for the next step
     addDocumentNonBlocking(masterBankCollection, newBankData);
 
     setNewBankName('');
+    setNewBankLogoUrl('');
     toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
   };
 
@@ -429,8 +440,12 @@ export default function BankProposalView() {
   }
 =======
   
+<<<<<<< HEAD
   const isLoading = isUserLoading || isLoadingMasterBanks || isLoadingChecklist;
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+  const isLoading = isLoadingMasterBanks || isLoadingChecklist;
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
 
 <<<<<<< HEAD
   const handleToggleStatus = (bankId: string) => {
@@ -562,23 +577,38 @@ export default function BankProposalView() {
         <CardHeader>
           <CardTitle>Adicionar Banco</CardTitle>
           <CardDescription>
-            Insira o nome do banco para adicioná-lo à lista de checklist de todos os usuários.
+            Insira os detalhes do banco para adicioná-lo à lista de checklist.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex w-full max-w-sm items-center space-x-2">
-            <Input 
-              type="text" 
-              placeholder="Nome do Banco" 
-              value={newBankName}
-              onChange={(e) => setNewBankName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddBank()}
-            />
-            <Button onClick={handleAddBank}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Adicionar
-            </Button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+              <div className="space-y-2">
+                <Label htmlFor="bank-name">Nome do Banco</Label>
+                <Input 
+                  id="bank-name"
+                  type="text" 
+                  placeholder="Ex: Banco do Brasil" 
+                  value={newBankName}
+                  onChange={(e) => setNewBankName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank-logo">URL da Logo</Label>
+                <Input 
+                  id="bank-logo"
+                  type="text" 
+                  placeholder="https://.../logo.png" 
+                  value={newBankLogoUrl}
+                  onChange={(e) => setNewBankLogoUrl(e.target.value)}
+                />
+              </div>
           </div>
+           <div className="mt-4">
+              <Button onClick={handleAddBank}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Banco
+              </Button>
+            </div>
         </CardContent>
       </Card>
 
@@ -630,6 +660,7 @@ export default function BankProposalView() {
                         )}
                         <span>{bank.name}</span>
                       </div>
+<<<<<<< HEAD
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
@@ -650,6 +681,8 @@ export default function BankProposalView() {
                       <Landmark className="h-4 w-4 text-muted-foreground" />
                       {bank.name}
 >>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
+=======
+>>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
                     </TableCell>
                     <TableCell>{renderStatus(bank)}</TableCell>
                     <TableCell>

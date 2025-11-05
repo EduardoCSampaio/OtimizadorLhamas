@@ -15,8 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Banknote } from 'lucide-react';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserProfile } from '@/firebase/user-data';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,6 +26,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleSignIn = async () => {
@@ -38,7 +41,7 @@ export default function LoginPage() {
         router.push('/');
     } catch (error: any) {
         let errorMessage = 'Ocorreu um erro ao fazer login.';
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
             errorMessage = 'Email ou senha inválidos.';
         } else if (error.code === 'auth/invalid-email') {
             errorMessage = 'O formato do email é inválido.';
@@ -50,8 +53,6 @@ export default function LoginPage() {
     }
   };
   
-  // This is a simplified sign-up for demonstration. 
-  // In a real app, you'd have a separate sign-up page.
   const handleSignUp = async () => {
     if (!email || !password) {
         toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, preencha email e senha para se cadastrar.' });
@@ -63,7 +64,8 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await createUserProfile(firestore, userCredential.user);
         toast({ title: 'Cadastro realizado!', description: 'Você foi cadastrado e logado com sucesso.' });
         router.push('/');
     } catch (error: any) {

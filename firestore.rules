@@ -3,21 +3,30 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is the owner of a document
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
+    
+    // Helper function to check if the user has the 'master' role
+    function isMaster() {
+      // Assumes the user's role is stored in a 'role' field in their user document
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'master';
+    }
 
-    // Rules for the 'users' collection
     match /users/{userId} {
-      // A user can read, create, and update their own profile data.
-      allow read, create, update: if isOwner(userId);
-      // Deleting user profiles is not allowed via these rules.
-      allow delete: if false;
+      // A user can read their own profile.
+      allow read: if isOwner(userId);
+      // A user can create their own profile upon signup. The 'role' must be 'user' unless it's the master email.
+      allow create: if request.auth.uid == userId && 
+                       (request.resource.data.email == 'eduardo.campos@lhamascred.com.br' ? request.resource.data.role == 'master' : request.resource.data.role == 'user');
+      // A user cannot change their own role. Only a master user can change other users' roles (future rule).
+      // For now, only allow displayName updates.
+      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName']);
+      
+      allow delete: if false; // Deleting user profiles is not allowed.
 
-      // Rules for the 'bankStatuses' subcollection
       match /bankStatuses/{bankStatusId} {
-        // The user can perform all operations (create, read, update, delete) on their own bank statuses.
+        // The user can perform all operations on their own bank statuses.
         allow read, write: if isOwner(userId);
       }
     }

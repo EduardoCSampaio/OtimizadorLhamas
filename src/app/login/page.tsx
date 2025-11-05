@@ -18,6 +18,7 @@ import { Banknote } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { createUserProfile } from '@/firebase/user-data';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 export default function LoginPage() {
@@ -36,7 +37,16 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Verifica se o perfil do usuário existe e cria se não existir
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (!userDoc.exists()) {
+          await createUserProfile(firestore, user);
+        }
+
         toast({ title: 'Sucesso', description: 'Login realizado com sucesso!' });
         router.push('/');
     } catch (error: any) {

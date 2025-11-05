@@ -9,7 +9,7 @@ export interface Proposal {
   phone: string;
 }
 
-export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6' | 'Custom';
+export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Custom';
 
 // Represents a master bank entry
 export interface BankMaster {

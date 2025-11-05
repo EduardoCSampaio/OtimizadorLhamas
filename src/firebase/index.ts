@@ -48,4 +48,7 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
+<<<<<<< HEAD
 export * from './user-data';
+=======
+>>>>>>> 75fb1c4 (Set up a Firebase backend)

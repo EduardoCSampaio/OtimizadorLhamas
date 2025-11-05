@@ -8,7 +8,7 @@ export interface Proposal {
   phone: string;
 }
 
-export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6';
+export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6' | 'Custom';
 
 export interface Bank {
   id: string;

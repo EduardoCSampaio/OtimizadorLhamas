@@ -16,12 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { banks, bankCategories } from '@/lib/data';
-import type { BankStatus, BankCategory } from '@/lib/types';
-import { CheckCircle, History } from 'lucide-react';
+import type { BankStatus } from '@/lib/types';
+import { CheckCircle, History, Landmark, PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,17 +28,34 @@ import { ptBR } from 'date-fns/locale';
 export default function BankProposalView() {
   const { toast } = useToast();
   const [bankStatuses, setBankStatuses] = useState<BankStatus[]>([]);
+  const [newBankName, setNewBankName] = useState('');
 
-  useEffect(() => {
-    // Initialize bank statuses
-    const initialStatuses = banks.map(bank => ({
-      ...bank,
-      status: 'Pendente' as const,
-      insertionDate: undefined,
-      priority: (['Itaú', 'Bradesco'].includes(bank.name) ? 'Alta' : 'Média') as 'Alta' | 'Média' | 'Baixa',
-    }));
-    setBankStatuses(initialStatuses);
-  }, []);
+  const handleAddBank = () => {
+    if (newBankName.trim() === '') {
+        toast({
+            variant: 'destructive',
+            title: 'Erro',
+            description: 'O nome do banco não pode estar vazio.',
+        });
+        return;
+    }
+
+    const newBank: BankStatus = {
+      id: newBankName.toLowerCase().replace(/\s/g, ''),
+      name: newBankName,
+      category: 'Custom', // Default category
+      icon: Landmark, // Default icon
+      status: 'Pendente',
+      priority: 'Média',
+    };
+
+    setBankStatuses(prev => [...prev, newBank]);
+    setNewBankName('');
+    toast({
+      title: 'Banco Adicionado!',
+      description: `O banco ${newBankName} foi adicionado à lista.`,
+    });
+  };
 
   const handleToggleStatus = (bankId: string) => {
     setBankStatuses(prev =>
@@ -86,82 +102,89 @@ export default function BankProposalView() {
     }
   }
 
-  const renderBanksForCategory = (category: BankCategory) => {
-    const filteredBanks = bankStatuses.filter(b => b.category === category);
-    
-    if (filteredBanks.length === 0) {
-        return <p className="text-muted-foreground text-sm p-4">Nenhum banco nesta categoria.</p>;
-    }
-
-    return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Banco</TableHead>
-            <TableHead>Status e Data da Última Atualização</TableHead>
-            <TableHead>Prioridade</TableHead>
-            <TableHead className="text-right">Ação</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredBanks.map(bank => (
-            <TableRow key={bank.id}>
-              <TableCell className="font-medium flex items-center gap-2">
-                <bank.icon className="h-4 w-4 text-muted-foreground" />
-                {bank.name}
-              </TableCell>
-              <TableCell>{renderStatus(bank)}</TableCell>
-              <TableCell>
-                <Badge variant={getPriorityBadgeVariant(bank.priority)}>{bank.priority}</Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleToggleStatus(bank.id)}
-                >
-                  {bank.status === 'Pendente' ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2"/>
-                      Concluir
-                    </>
-                  ) : (
-                    <>
-                      <History className="h-4 w-4 mr-2"/>
-                      Reabrir
-                    </>
-                  )}
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    );
-  };
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Checklist Diário de Inserções</CardTitle>
-        <CardDescription>
-          Controle diário da inserção de propostas nos sistemas bancários.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue={bankCategories[0]}>
-          <TabsList>
-            {bankCategories.map(category => (
-                <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
-            ))}
-          </TabsList>
-          {bankCategories.map(category => (
-            <TabsContent key={category} value={category}>
-                {renderBanksForCategory(category)}
-            </TabsContent>
-          ))}
-        </Tabs>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Adicionar Banco</CardTitle>
+          <CardDescription>
+            Insira o nome do banco para adicioná-lo à sua lista de checklist.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex w-full max-w-sm items-center space-x-2">
+            <Input 
+              type="text" 
+              placeholder="Nome do Banco" 
+              value={newBankName}
+              onChange={(e) => setNewBankName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddBank()}
+            />
+            <Button onClick={handleAddBank}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Adicionar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Checklist Diário de Inserções</CardTitle>
+          <CardDescription>
+            Controle diário da inserção de propostas nos sistemas bancários.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {bankStatuses.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Banco</TableHead>
+                  <TableHead>Status e Data da Última Atualização</TableHead>
+                  <TableHead>Prioridade</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bankStatuses.map(bank => (
+                  <TableRow key={bank.id}>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <bank.icon className="h-4 w-4 text-muted-foreground" />
+                      {bank.name}
+                    </TableCell>
+                    <TableCell>{renderStatus(bank)}</TableCell>
+                    <TableCell>
+                      <Badge variant={getPriorityBadgeVariant(bank.priority)}>{bank.priority}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleToggleStatus(bank.id)}
+                      >
+                        {bank.status === 'Pendente' ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2"/>
+                            Concluir
+                          </>
+                        ) : (
+                          <>
+                            <History className="h-4 w-4 mr-2"/>
+                            Reabrir
+                          </>
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ainda. Comece adicionando um acima.</p>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }

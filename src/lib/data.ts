@@ -1,17 +1,5 @@
-import type { Bank, PriorityTask, Activity, BankCategory } from './types';
-import { Landmark, FileClock, CheckCircle2, UserPlus, Send, History } from 'lucide-react';
-
-export const bankCategories: BankCategory[] = ['Qualibanking', 'Credfranco', 'Daycoval', 'Facta', 'C6'];
-
-export const banks: Bank[] = [
-  { id: 'itau', name: 'Itaú', category: 'Qualibanking', icon: Landmark },
-  { id: 'bradesco', name: 'Bradesco', category: 'Qualibanking', icon: Landmark },
-  { id: 'bb', name: 'Banco do Brasil', category: 'Credfranco', icon: Landmark },
-  { id: 'caixa', name: 'Caixa Econômica', category: 'Credfranco', icon: Landmark },
-  { id: 'daycoval', name: 'Banco Daycoval', category: 'Daycoval', icon: Landmark },
-  { id: 'facta', name: 'Facta Financeira', category: 'Facta', icon: Landmark },
-  { id: 'c6', name: 'C6 Bank', category: 'C6', icon: Landmark },
-];
+import type { PriorityTask, Activity } from './types';
+import { CheckCircle2, UserPlus, History } from 'lucide-react';
 
 export const priorityTasks: PriorityTask[] = [
   { id: '1', title: 'Finalizar inserção BMG', client: 'Ana Silva', deadline: 'Hoje, 17:00', priority: 'Alta' },

@@ -48,6 +48,7 @@ export default function PriorityTasks() {
 
     const checklistMap = new Map(userChecklist.map((item) => [item.id, item]));
 
+<<<<<<< HEAD
     // Filter for banks that are in the "Inserção" category first.
     const insertionBanks = masterBanks.filter(
         (bank) => Array.isArray(bank.categories) && bank.categories.includes('Inserção')
@@ -60,6 +61,11 @@ export default function PriorityTasks() {
         // This is fine, as another useEffect in bank-proposal-view creates it.
         if (!checklistStatus) return null;
         
+=======
+    const tasks = masterBanks
+      .map((bank) => {
+        const checklistStatus = checklistMap.get(bank.id);
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
         const status = checklistStatus?.status || 'Pendente';
         const insertionDate = checklistStatus?.insertionDate || null;
         
@@ -90,7 +96,11 @@ export default function PriorityTasks() {
     status: 'Pendente' | 'Concluído',
     insertionDate: any
   ): 'Alta' | 'Média' | 'Baixa' => {
+<<<<<<< HEAD
     if (!insertionDate || status === 'Pendente') {
+=======
+    if (!insertionDate) {
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
       return 'Média'; // Pending tasks are medium priority
     }
     const date = insertionDate.toDate ? insertionDate.toDate() : new Date();
@@ -102,16 +112,23 @@ export default function PriorityTasks() {
   };
   
   const getTaskTitle = (status: 'Pendente' | 'Concluído', bankName: string, insertionDate: any) => {
+<<<<<<< HEAD
       if (status === 'Pendente') {
         return `Inserção pendente: ${bankName}`;
       }
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
       const date = insertionDate?.toDate ? insertionDate.toDate() : new Date();
       const daysSinceUpdate = differenceInDays(new Date(), date);
       
       if (status === 'Concluído' && daysSinceUpdate >= 2) {
           return `Verificar inserção: ${bankName}`;
       }
+<<<<<<< HEAD
       return `Inserção concluída: ${bankName}`;
+=======
+      return `Inserção pendente: ${bankName}`;
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
   }
 
   const getTaskDescription = (status: 'Pendente' | 'Concluído', insertionDate: any) => {
@@ -145,7 +162,11 @@ export default function PriorityTasks() {
       <CardHeader>
         <CardTitle>Prioridades</CardTitle>
         <CardDescription>
+<<<<<<< HEAD
           Tarefas de inserção que requerem sua atenção.
+=======
+          Tarefas que requerem sua atenção imediata.
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -177,7 +198,13 @@ export default function PriorityTasks() {
                                 className={`flex h-2 w-2 rounded-full ${
                                 task.priority === 'Alta'
                                     ? 'bg-red-500'
+<<<<<<< HEAD
                                     : 'bg-yellow-500'
+=======
+                                    : task.priority === 'Média'
+                                    ? 'bg-yellow-500'
+                                    : 'bg-green-500'
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
                                 }`}
                             />
                             <div className="grid gap-0.5">

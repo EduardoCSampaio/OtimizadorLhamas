@@ -121,7 +121,11 @@
         },
         "categories": {
           "type": "array",
+<<<<<<< HEAD
           "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Inserção, Sem Info).",
+=======
+          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
           "items": {
             "type": "string",
             "enum": [
@@ -247,6 +251,7 @@
         "userEmail",
         "type"
       ]
+<<<<<<< HEAD
     },
     "BankAccessDetails": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -421,6 +426,8 @@
         "updatedAt"
       ]
 >>>>>>> d71a7cb (Foi, agora vamos seguir para criação de mais coisas, vamos criar as "Reg)
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     }
   },
   "auth": {
@@ -635,6 +642,22 @@
               "name": "checklistId",
               "description": "The unique identifier for the bank checklist entry, likely matching the bankStatusId."
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+            }
+          ]
+        }
+      },
+      {
+        "path": "/activityLogs/{logId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": {
+            "$ref": "#/backend/entities/ActivityLog"
+          },
+          "description": "Stores a log of all important activities within the application. Readable by all authenticated users, writable only via server-side logic (enforced by security rules allowing only create).",
+          "params": [
+            {
+              "name": "logId",
+              "description": "The unique identifier for the log entry."
             }
           ]
         }

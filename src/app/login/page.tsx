@@ -29,7 +29,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'fire
 =======
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { createUserProfile } from '@/firebase/user-data';
+import { createUserProfile, logUserSignIn } from '@/firebase/user-data';
 import { doc, getDoc } from 'firebase/firestore';
 
 >>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
@@ -66,14 +66,20 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
+<<<<<<< HEAD
         // Verifica se o perfil do usuário existe e cria se não existir
 >>>>>>> fb41279 (Aparentemente, já fiz o cadastro tudo certinho antes dessa opção, então,)
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
           await createUserProfile(firestore, user);
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
         
         logUserSignIn(firestore, user.email);
 

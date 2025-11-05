@@ -129,6 +129,7 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/no
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
 import { useMemoFirebase } from '@/firebase/provider';
 import EditBankModal from './edit-bank-modal';
+import { createActivityLog } from '@/firebase/user-data';
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
@@ -298,7 +299,7 @@ export default function BankProposalView() {
         toast({ variant: 'destructive', title: 'Erro', description: 'Selecione pelo menos uma categoria.' });
         return;
     }
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     const masterBankCollection = collection(firestore, 'bankStatuses');
     const q = query(masterBankCollection, where("name", "==", newBankName.trim()));
@@ -317,6 +318,11 @@ export default function BankProposalView() {
     };
 
     addDocumentNonBlocking(masterBankCollection, newBankData);
+    
+    createActivityLog(firestore, user.email || 'unknown', {
+        type: 'CREATE',
+        description: `Adicionou o banco: ${newBankName.trim()}`
+    });
 
     setNewBankName('');
     setNewBankLogoUrl('');
@@ -432,6 +438,11 @@ export default function BankProposalView() {
         status: newStatus,
         insertionDate: newInsertionDate,
         updatedAt: serverTimestamp()
+    });
+
+    createActivityLog(firestore, user.email || 'unknown', {
+        type: newStatus === 'Concluído' ? 'STATUS_CHANGE' : 'UPDATE',
+        description: `Alterou o status de ${currentBank.name} para ${newStatus}`
     });
 
     toast({
@@ -583,7 +594,7 @@ export default function BankProposalView() {
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
   
   const handleUpdateBank = async (updatedData: { name: string; logoUrl: string, categories: BankCategory[] }) => {
-    if (!firestore || !selectedBank) return;
+    if (!firestore || !selectedBank || !user) return;
   
     const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
   
@@ -595,6 +606,11 @@ export default function BankProposalView() {
         updatedAt: serverTimestamp()
       });
   
+      createActivityLog(firestore, user.email || 'unknown', {
+          type: 'UPDATE',
+          description: `Atualizou os dados do banco: ${updatedData.name}`
+      });
+
       toast({
         title: 'Banco Atualizado!',
         description: `O banco ${updatedData.name} foi atualizado com sucesso.`,

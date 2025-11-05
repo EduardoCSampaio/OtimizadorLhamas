@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 // This file is no longer in use, as data is now fetched dynamically from Firestore.
 // It is kept for reference but can be safely removed in the future.
 export {};
@@ -36,3 +37,8 @@ export const activityLog: Activity[] = [
     { id: '4', icon: History, description: 'Reaberta inserção para a proposta de Mariana Costa no C6.', timestamp: 'ontem' },
 ];
 >>>>>>> 72b0cd5 (Não é bem como deveria ser, teria que ter os bancos anotados, a data que)
+=======
+// This file is no longer in use, as data is now fetched dynamically from Firestore.
+// It is kept for reference but can be safely removed in the future.
+export {};
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)

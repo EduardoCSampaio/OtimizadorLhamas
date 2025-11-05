@@ -46,10 +46,15 @@ import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { createActivityLog } from '@/firebase/user-data';
 import { useUser } from '@/firebase/provider';
 =======
 >>>>>>> caa683f (Try fixing this error: `Build Error: Module not found: Can't resolve '..)
+=======
+import { createActivityLog } from '@/firebase/user-data';
+import { useUser } from '@/firebase/provider';
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -136,6 +141,7 @@ const getProxiedUrl = (url: string) => `https://images1-focus-opensocial.googleu
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
+  const { user } = useUser();
   const isMaster = userRole === 'master';
 
   const cltRulesCollectionRef = useMemoFirebase(
@@ -199,10 +205,14 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
   const handleSaveNewRules = () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (!cltRulesCollectionRef || !user) return;
 =======
     if (!cltRulesCollectionRef) return;
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+    if (!cltRulesCollectionRef || !user) return;
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     const rulesToSave = newRules.filter(rule => rule.ruleName.trim() !== '' && rule.ruleValue.trim() !== '');
     if (rulesToSave.length === 0) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Nenhuma regra válida para salvar.' });
@@ -219,11 +229,15 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     createActivityLog(firestore, user.email || 'unknown', {
         type: 'CREATE',
         description: `Adicionou ${rulesToSave.length} nova(s) regra(s) CLT para o banco ${bank.name}.`
     });
 
+<<<<<<< HEAD
     toast({ title: 'Sucesso!', description: `${rulesToSave.length} nova(s) regra(s) salva(s) para ${bank.name}.` });
     setNewRules([]);
   };
@@ -233,12 +247,14 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
     const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', editingRule.id);
 =======
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     toast({ title: 'Sucesso!', description: `${rulesToSave.length} nova(s) regra(s) salva(s) para ${bank.name}.` });
     setNewRules([]);
   };
   
   const handleUpdateRule = () => {
-    if (!editingRule || !firestore) return;
+    if (!editingRule || !firestore || !user) return;
 
 <<<<<<< HEAD
     const ruleDocRef = doc(cltRulesCollectionRef, editingRule.id);
@@ -252,13 +268,19 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         updatedAt: serverTimestamp()
     });
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
 
     createActivityLog(firestore, user.email || 'unknown', {
         type: 'UPDATE',
         description: `Atualizou a regra CLT "${editingRule.ruleName}" para o banco ${bank.name}.`
     });
+<<<<<<< HEAD
 =======
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     
     toast({ title: 'Regra Atualizada!', description: 'A regra foi atualizada com sucesso.' });
     setEditingRule(null);
@@ -267,10 +289,14 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   const handleDeleteRule = (ruleId: string) => {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     if (!firestore || !user) return;
     const ruleToDelete = cltRules?.find(r => r.id === ruleId);
     if (!ruleToDelete) return;
 
+<<<<<<< HEAD
     const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', ruleId);
     deleteDocumentNonBlocking(ruleDocRef);
 
@@ -414,9 +440,17 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     const ruleDocRef = doc(cltRulesCollectionRef, ruleId);
 =======
     if (!firestore) return;
+=======
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', ruleId);
 >>>>>>> 54b04f1 (Talvez se tivesse um jeito de saber quando vai cortar e quando for corta)
     deleteDocumentNonBlocking(ruleDocRef);
+
+     createActivityLog(firestore, user.email || 'unknown', {
+        type: 'DELETE',
+        description: `Removeu a regra CLT "${ruleToDelete.ruleName}" do banco ${bank.name}.`
+    });
+
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
   

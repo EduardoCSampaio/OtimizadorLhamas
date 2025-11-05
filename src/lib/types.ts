@@ -106,7 +106,6 @@ export interface BankChecklistStatus {
   updatedAt: Timestamp;
 }
 
-
 export interface CLTRule {
   id: string;
   ruleName: string;
@@ -114,7 +113,6 @@ export interface CLTRule {
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
-
 
 export interface PriorityTask {
   id: string;
@@ -129,6 +127,7 @@ export interface Activity {
   description: string;
   timestamp: Timestamp;
   userEmail: string;
+<<<<<<< HEAD
   type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE' | 'REOPEN';
 }
 
@@ -152,4 +151,7 @@ export interface BankAccessDetails {
   link?: string;
   logins?: LoginCredential[];
   updatedAt: Timestamp;
+=======
+  type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE';
+>>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
 }

@@ -106,8 +106,11 @@ const localLogoPath = '/logo.png';
 =======
 const localLogoPath = '/logo.png';
 
+<<<<<<< HEAD
 >>>>>>> caa683f (Try fixing this error: `Build Error: Module not found: Can't resolve '..)
 
+=======
+>>>>>>> 445f7be (Está assim ainda)
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();

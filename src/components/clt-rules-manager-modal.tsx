@@ -55,7 +55,6 @@ const defaultRuleNames = [
 
 const localLogoPath = '/logo.png';
 
-
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();

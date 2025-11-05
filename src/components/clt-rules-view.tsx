@@ -104,9 +104,11 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
 
+    // Deep copy of banks to avoid mutation issues
+    const banksCopy = JSON.parse(JSON.stringify(banks));
+
     const dataForPdf: BankDataForPDF[] = await Promise.all(
-        // Create a deep copy of banks to avoid mutation issues
-        JSON.parse(JSON.stringify(banks)).map(async (bank: BankMaster) => {
+        banksCopy.map(async (bank: BankMaster) => {
             let logoImage: HTMLImageElement | undefined = undefined;
             if (bank.logoUrl) {
                 try {
@@ -203,10 +205,9 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
                 } else if (bankData?.bank) {
                     const text = bankData.bank.name;
-                    const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
-                    const textX = data.cell.x + (data.cell.width - textWidth) / 2;
-                    const textY = data.cell.y + data.cell.height / 2;
-                    doc.text(text, textX, textY, {baseline: 'middle'});
+                    doc.text(text, data.cell.x + 2, data.cell.y + data.cell.height / 2, {
+                        baseline: 'middle'
+                    });
                 }
             }
         },

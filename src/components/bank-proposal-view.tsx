@@ -21,8 +21,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { banks, bankCategories } from '@/lib/data';
 import type { Proposal, BankStatus, BankCategory } from '@/lib/types';
-import { Send, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, History } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface BankProposalViewProps {
   proposal: Proposal;
@@ -37,39 +39,30 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
     const initialStatuses = banks.map(bank => ({
       ...bank,
       status: 'Pendente' as const,
+      insertionDate: undefined,
       priority: (['Itaú', 'Bradesco'].includes(bank.name) ? 'Alta' : 'Média') as 'Alta' | 'Média' | 'Baixa',
     }));
     setBankStatuses(initialStatuses);
   }, []);
 
-  const handleSubmission = (bankId: string) => {
+  const handleToggleStatus = (bankId: string) => {
     setBankStatuses(prev =>
-      prev.map(b => (b.id === bankId ? { ...b, status: 'Enviando...' } : b))
-    );
-    
-    toast({
-        title: 'Enviando Proposta...',
-        description: `A proposta para ${proposal.clientName} está sendo enviada para ${banks.find(b => b.id === bankId)?.name}.`,
-    });
+      prev.map(b => {
+        if (b.id === bankId) {
+          const isCompleted = b.status === 'Concluído';
+          const newStatus = isCompleted ? 'Pendente' : 'Concluído';
+          const newDate = isCompleted ? undefined : format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+          
+          toast({
+              title: `Status Alterado!`,
+              description: `A inserção no banco ${b.name} foi marcada como ${newStatus.toLowerCase()}.`,
+          });
 
-    // Simulate API call
-    setTimeout(() => {
-        const isSuccess = Math.random() > 0.3; // 70% chance of success
-        setBankStatuses(prev =>
-            prev.map(b => {
-                if (b.id === bankId) {
-                    const newStatus = isSuccess ? 'Enviado' : 'Rejeitado';
-                    toast({
-                        title: `Proposta ${newStatus === 'Enviado' ? 'Enviada' : 'Falhou'}`,
-                        description: `A proposta para o banco ${b.name} foi ${newStatus === 'Enviado' ? 'enviada com sucesso' : 'rejeitada na validação inicial'}.`,
-                        variant: newStatus === 'Enviado' ? 'default' : 'destructive',
-                    });
-                    return { ...b, status: newStatus };
-                }
-                return b;
-            })
-        );
-    }, 2000 + Math.random() * 2000);
+          return { ...b, status: newStatus, insertionDate: newDate };
+        }
+        return b;
+      })
+    );
   };
 
   const getPriorityBadgeVariant = (priority: 'Alta' | 'Média' | 'Baixa') => {
@@ -83,13 +76,17 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
     }
   };
 
-  const renderStatus = (status: BankStatus['status']) => {
-    switch(status) {
-        case 'Pendente': return <Badge variant="outline">Pendente</Badge>;
-        case 'Enviando...': return <Badge variant="secondary"><Loader2 className="mr-2 h-3 w-3 animate-spin"/>Enviando...</Badge>;
-        case 'Enviado': return <Badge className="bg-sky-600"><CheckCircle className="mr-2 h-3 w-3"/>Enviado</Badge>;
-        case 'Aprovado': return <Badge className="bg-green-600"><CheckCircle className="mr-2 h-3 w-3"/>Aprovado</Badge>;
-        case 'Rejeitado': return <Badge variant="destructive"><XCircle className="mr-2 h-3 w-3"/>Rejeitado</Badge>;
+  const renderStatus = (status: BankStatus) => {
+    switch(status.status) {
+        case 'Pendente': 
+            return <Badge variant="outline">Pendente</Badge>;
+        case 'Concluído': 
+            return (
+                <div className="flex flex-col">
+                    <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle className="mr-2 h-3 w-3"/>Concluído</Badge>
+                    {status.insertionDate && <span className="text-xs text-muted-foreground mt-1">{status.insertionDate}</span>}
+                </div>
+            );
     }
   }
 
@@ -105,7 +102,7 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Banco</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Status e Data</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead className="text-right">Ação</TableHead>
           </TableRow>
@@ -117,7 +114,7 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
                 <bank.icon className="h-4 w-4 text-muted-foreground" />
                 {bank.name}
               </TableCell>
-              <TableCell>{renderStatus(bank.status)}</TableCell>
+              <TableCell>{renderStatus(bank)}</TableCell>
               <TableCell>
                 <Badge variant={getPriorityBadgeVariant(bank.priority)}>{bank.priority}</Badge>
               </TableCell>
@@ -125,11 +122,19 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => handleSubmission(bank.id)}
-                    disabled={bank.status !== 'Pendente' && bank.status !== 'Rejeitado'}
+                    onClick={() => handleToggleStatus(bank.id)}
                 >
-                  <Send className="h-4 w-4 mr-2"/>
-                  Enviar
+                  {bank.status === 'Pendente' ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2"/>
+                      Marcar como Concluído
+                    </>
+                  ) : (
+                    <>
+                      <History className="h-4 w-4 mr-2"/>
+                      Reabrir
+                    </>
+                  )}
                 </Button>
               </TableCell>
             </TableRow>
@@ -142,10 +147,11 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>2. Enviar Propostas</CardTitle>
+        <CardTitle>2. Controlar Inserções</CardTitle>
         <CardDescription>
-          Selecione os bancos para os quais deseja enviar a proposta de{' '}
-          <span className="font-semibold text-primary">{proposal.clientName}</span>.
+          Marque os bancos onde a proposta de{' '}
+          <span className="font-semibold text-primary">{proposal.clientName}</span>{' '}
+          já foi inserida.
         </CardDescription>
       </CardHeader>
       <CardContent>

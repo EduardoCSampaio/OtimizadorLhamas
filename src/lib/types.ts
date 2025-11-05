@@ -18,7 +18,8 @@ export interface Bank {
 }
 
 export interface BankStatus extends Bank {
-  status: 'Pendente' | 'Enviando...' | 'Enviado' | 'Aprovado' | 'Rejeitado';
+  status: 'Pendente' | 'Concluído';
+  insertionDate?: string;
   priority: 'Alta' | 'Média' | 'Baixa';
 }
 

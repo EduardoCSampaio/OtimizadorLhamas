@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -393,9 +394,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     const loadImage = (url: string): Promise<HTMLImageElement> => {
         return new Promise((resolve, reject) => {
             if (!url) {
-                return reject(new Error('Invalid or missing image URL.'));
+                return reject(new Error('URL inválida ou ausente.'));
             }
-
             const img = new window.Image();
             img.crossOrigin = 'Anonymous';
             img.onload = () => resolve(img);
@@ -404,6 +404,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             if (url.startsWith('http')) {
                 const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
                 img.src = proxiedUrl;
+            } else if (url.startsWith('/')) {
+                img.src = `${window.location.origin}${url}`;
             } else {
                 img.src = url;
             }
@@ -438,7 +440,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
 
   const generatePdfContent = (docPDF: jsPDFWithAutoTable, logoImage: HTMLImageElement | null) => {
-      const addHeader = (data: any) => {
+      const addHeader = () => {
         const pageWidth = docPDF.internal.pageSize.getWidth();
         let startY = 15;
 
@@ -447,32 +449,33 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             const maxBoxHeight = 25; 
             const aspectRatio = logoImage.naturalWidth / logoImage.naturalHeight;
             
-            let renderWidth = maxBoxWidth;
-            let renderHeight = maxBoxWidth / aspectRatio;
+            let renderWidth, renderHeight;
+
+            if(logoImage.naturalWidth > logoImage.naturalHeight) { // Landscape
+                renderWidth = Math.min(maxBoxWidth, logoImage.naturalWidth);
+                renderHeight = renderWidth / aspectRatio;
+            } else { // Portrait or square
+                renderHeight = Math.min(maxBoxHeight, logoImage.naturalHeight);
+                renderWidth = renderHeight * aspectRatio;
+            }
             
             if (renderHeight > maxBoxHeight) {
                 renderHeight = maxBoxHeight;
-                renderWidth = maxBoxHeight * aspectRatio;
+                renderWidth = renderHeight * aspectRatio;
             }
             if (renderWidth > maxBoxWidth) {
                 renderWidth = maxBoxWidth;
-                renderHeight = maxBoxWidth / aspectRatio;
+                renderHeight = renderWidth / aspectRatio;
             }
             
             const x = (pageWidth - renderWidth) / 2;
 
             try {
-                const canvas = document.createElement('canvas');
-                canvas.width = logoImage.naturalWidth;
-                canvas.height = logoImage.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                if(!ctx) throw new Error("Canvas context not found");
-                ctx.drawImage(logoImage, 0, 0);
-                const dataUrl = canvas.toDataURL('image/png');
-                docPDF.addImage(dataUrl, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
+                docPDF.addImage(logoImage, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
                 startY += renderHeight + 5;
             } catch (e) {
                 console.error("Error adding image to PDF:", e);
+                // Fallback to text if image fails
                 docPDF.setFontSize(20);
                 docPDF.text(`${bank.name}`, pageWidth / 2, startY, { align: 'center' });
                 startY += 10;
@@ -494,16 +497,18 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
           docPDF.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, docPDF.internal.pageSize.getHeight() - 10);
       };
       
+      const tableStartY = 60;
+
       docPDF.autoTable({
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] },
         didDrawPage: (data) => {
-            addHeader(data);
+            addHeader();
             addFooter(data);
         },
-        margin: { top: 60 } // Increased margin to prevent overlap
+        margin: { top: tableStartY }
       });
       
       docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
@@ -713,5 +718,3 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     </Dialog>
   );
 }
-
-    

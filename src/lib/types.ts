@@ -71,6 +71,14 @@ export interface BankStatusDocument {
   updatedAt: Timestamp;
 }
 
+export interface CLTRuleDocument {
+  id: string;
+  ruleName: string;
+  ruleValue: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export interface PriorityTask {
   id: string;
   title: string;

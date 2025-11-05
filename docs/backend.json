@@ -367,7 +367,47 @@
         "createdAt",
         "updatedAt"
       ]
+<<<<<<< HEAD
 >>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
+=======
+    },
+    "CLTRule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CLTRule",
+      "type": "object",
+      "description": "Represents a specific business rule for CLT calculations or validations.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CLT Rule."
+        },
+        "ruleName": {
+          "type": "string",
+          "description": "The name or title of the rule (e.g., 'Tempo de Admissão')."
+        },
+        "ruleValue": {
+          "type": "string",
+          "description": "The value or condition for the rule (e.g., '6 meses')."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the rule was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last update."
+        }
+      },
+      "required": [
+        "id",
+        "ruleName",
+        "ruleValue",
+        "createdAt",
+        "updatedAt"
+      ]
+>>>>>>> d71a7cb (Foi, agora vamos seguir para criação de mais coisas, vamos criar as "Reg)
     }
   },
   "auth": {
@@ -548,6 +588,22 @@
               "name": "bankStatusId",
               "description": "The unique identifier for the bank status entry."
 >>>>>>> 0af121b (File changes)
+            }
+          ]
+        }
+      },
+      {
+        "path": "/cltRules/{ruleId}",
+        "definition": {
+          "entityName": "CLTRule",
+          "schema": {
+            "$ref": "#/backend/entities/CLTRule"
+          },
+          "description": "Stores global CLT rules. Writable only by 'master' role, readable by all authenticated users.",
+          "params": [
+            {
+              "name": "ruleId",
+              "description": "The unique identifier for the CLT rule."
             }
           ]
         }

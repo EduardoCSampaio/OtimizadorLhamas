@@ -1,6 +1,7 @@
 'use client';
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import {
   Banknote,
   Bell,
@@ -15,6 +16,9 @@ import {
 =======
 import { Banknote, Bell, LifeBuoy, LogOut, Settings, User as UserIcon } from 'lucide-react';
 >>>>>>> 0af121b (File changes)
+=======
+import { Banknote, Bell, LifeBuoy, LogOut, Settings, User as UserIcon, BookCheck } from 'lucide-react';
+>>>>>>> d71a7cb (Foi, agora vamos seguir para criação de mais coisas, vamos criar as "Reg)
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -43,6 +47,8 @@ export default function Header() {
 =======
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
+import Link from 'next/link';
+
 
 export default function Header() {
   const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar');
@@ -69,6 +75,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-card/80 px-4 backdrop-blur-sm md:px-6">
+<<<<<<< HEAD
       <div className="flex items-center gap-4 md:gap-6">
         <Link href="/" className="flex items-center gap-2">
           <Banknote className="h-7 w-7 text-primary" />
@@ -90,6 +97,15 @@ export default function Header() {
                 </Link>
             ))}
         </nav>
+=======
+      <div className="flex items-center gap-2 md:gap-4">
+        <Link href="/" className='flex items-center gap-2'>
+            <Banknote className="h-7 w-7 text-primary" />
+            <h1 className="text-lg font-bold text-primary md:text-xl font-headline">
+            Bank Proposal Automation
+            </h1>
+        </Link>
+>>>>>>> d71a7cb (Foi, agora vamos seguir para criação de mais coisas, vamos criar as "Reg)
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
@@ -161,6 +177,10 @@ export default function Header() {
                 </DropdownMenuItem>
 =======
               <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => router.push('/regras-clt')}>
+                  <BookCheck className="mr-2 h-4 w-4" />
+                  <span>Regras CLT</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Perfil</span>

@@ -1,5 +1,6 @@
 'use client';
 
+<<<<<<< HEAD
 import {
   Banknote,
   Bell,
@@ -11,6 +12,9 @@ import {
   Settings,
   User as UserIcon,
 } from 'lucide-react';
+=======
+import { Banknote, Bell, LifeBuoy, LogOut, Settings, User as UserIcon } from 'lucide-react';
+>>>>>>> 0af121b (File changes)
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,6 +28,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useUser, useAuth } from '@/firebase';
+<<<<<<< HEAD
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
@@ -35,6 +40,16 @@ export default function Header() {
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+=======
+import { useRouter } from 'next/navigation';
+import { Skeleton } from '../ui/skeleton';
+
+export default function Header() {
+  const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar');
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+>>>>>>> 0af121b (File changes)
 
   const handleLogout = () => {
     if (auth) {
@@ -42,12 +57,15 @@ export default function Header() {
       router.push('/login');
     }
   };
+<<<<<<< HEAD
 
   const navLinks = [
     { href: '/', label: 'Painel Principal', icon: LayoutDashboard },
     { href: '/bancos', label: 'Bancos', icon: Building2 },
     { href: '/regras-clt', label: 'Regras CLT', icon: Settings },
   ];
+=======
+>>>>>>> 0af121b (File changes)
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-card/80 px-4 backdrop-blur-sm md:px-6">
@@ -80,12 +98,17 @@ export default function Header() {
           <span className="sr-only">Toggle notifications</span>
         </Button>
         {isUserLoading ? (
+<<<<<<< HEAD
           <Skeleton className="h-9 w-9 rounded-full" />
+=======
+            <Skeleton className="h-9 w-9 rounded-full" />
+>>>>>>> 0af121b (File changes)
         ) : user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                 <Avatar className="h-9 w-9">
+<<<<<<< HEAD
                   {user.photoURL ? (
                     <AvatarImage src={user.photoURL} alt="User" />
                   ) : (
@@ -94,21 +117,30 @@ export default function Header() {
                   <AvatarFallback>
                     {user.email?.[0].toUpperCase() ?? 'U'}
                   </AvatarFallback>
+=======
+                  {user.photoURL ? <AvatarImage src={user.photoURL} alt="User" /> : userAvatar && <AvatarImage src={userAvatar.imageUrl} alt="User" />}
+                  <AvatarFallback>{user.email?.[0].toUpperCase() ?? 'U'}</AvatarFallback>
+>>>>>>> 0af121b (File changes)
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
+<<<<<<< HEAD
                   <p className="text-sm font-medium leading-none">
                     {user.displayName || 'Usuário'}
                   </p>
+=======
+                  <p className="text-sm font-medium leading-none">{user.displayName || 'Usuário'}</p>
+>>>>>>> 0af121b (File changes)
                   <p className="text-xs leading-none text-muted-foreground">
                     {user.email}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+<<<<<<< HEAD
                <DropdownMenuGroup className="md:hidden">
                  {navLinks.map((link) => (
                     <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
@@ -127,6 +159,13 @@ export default function Header() {
                   <KeyRound className="mr-2 h-4 w-4" />
                   <span>Meus Acessos</span>
                 </DropdownMenuItem>
+=======
+              <DropdownMenuGroup>
+                <DropdownMenuItem>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Perfil</span>
+                </DropdownMenuItem>
+>>>>>>> 0af121b (File changes)
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Configurações</span>
@@ -144,7 +183,11 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
+<<<<<<< HEAD
           <Button onClick={() => router.push('/login')}>Login</Button>
+=======
+            <Button onClick={() => router.push('/login')}>Login</Button>
+>>>>>>> 0af121b (File changes)
         )}
       </div>
     </header>

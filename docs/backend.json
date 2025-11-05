@@ -9,16 +9,21 @@
         "id": {
           "type": "string",
 <<<<<<< HEAD
+<<<<<<< HEAD
           "description": "Unique identifier for the User entity. (Same as Firebase Auth UID)"
 =======
           "description": "Unique identifier for the User entity."
 >>>>>>> 75fb1c4 (Set up a Firebase backend)
+=======
+          "description": "Unique identifier for the User entity. (Same as Firebase Auth UID)"
+>>>>>>> 0af121b (File changes)
         },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
         },
+<<<<<<< HEAD
 <<<<<<< HEAD
         "displayName": {
           "type": "string",
@@ -33,22 +38,31 @@
           ]
 =======
         "firstName": {
+=======
+        "displayName": {
+>>>>>>> 0af121b (File changes)
           "type": "string",
-          "description": "First name of the user."
+          "description": "Display name of the user."
         },
-        "lastName": {
+        "role": {
           "type": "string",
+<<<<<<< HEAD
           "description": "Last name of the user."
         },
         "roleId": {
           "type": "string",
           "description": "Reference to Role. (Relationship: User 1:1 Role)"
 >>>>>>> 75fb1c4 (Set up a Firebase backend)
+=======
+          "description": "User role, e.g., 'admin', 'user'.",
+          "enum": ["master", "user"]
+>>>>>>> 0af121b (File changes)
         }
       },
       "required": [
         "id",
         "email",
+<<<<<<< HEAD
 <<<<<<< HEAD
         "role"
       ]
@@ -285,46 +299,70 @@
         "firstName",
         "lastName",
         "roleId"
+=======
+        "role"
+>>>>>>> 0af121b (File changes)
       ]
     },
-    "Role": {
+    "BankStatus": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Role",
+      "title": "BankStatus",
       "type": "object",
-      "description": "Defines the roles and associated permissions within the system.",
+      "description": "Represents the status of a bank proposal insertion for a specific user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Role entity."
-        },
         "name": {
           "type": "string",
-          "description": "Name of the role (e.g., Administrator, Manager, User)."
+          "description": "Name of the bank."
         },
-        "permissions": {
-          "type": "array",
-          "description": "A list of permissions associated with this role.",
-          "items": {
-            "type": "string"
-          }
+        "category": {
+          "type": "string",
+          "description": "Category of the bank."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the proposal insertion.",
+          "enum": ["Pendente", "Concluído"]
+        },
+        "insertionDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Timestamp when the proposal was marked as 'Concluído'."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the bank status was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last update."
         }
       },
+<<<<<<< HEAD
       "required": [
         "id",
         "name",
         "permissions"
 >>>>>>> 75fb1c4 (Set up a Firebase backend)
       ]
+=======
+      "required": ["name", "category", "status", "createdAt", "updatedAt"]
+>>>>>>> 0af121b (File changes)
     }
   },
   "auth": {
     "providers": [
+<<<<<<< HEAD
 <<<<<<< HEAD
       "password"
 =======
       "password",
       "anonymous"
 >>>>>>> 75fb1c4 (Set up a Firebase backend)
+=======
+      "password"
+>>>>>>> 0af121b (File changes)
     ]
   },
   "firestore": {
@@ -337,10 +375,14 @@
             "$ref": "#/backend/entities/User"
           },
 <<<<<<< HEAD
+<<<<<<< HEAD
           "description": "Stores user profile information, including their role. Secured by requiring `request.auth.uid == userId`.",
 =======
           "description": "Stores user profile information. Secured by requiring `request.auth.uid == userId`.",
 >>>>>>> 75fb1c4 (Set up a Firebase backend)
+=======
+          "description": "Stores user profile information, including their role. Secured by requiring `request.auth.uid == userId`.",
+>>>>>>> 0af121b (File changes)
           "params": [
             {
               "name": "userId",
@@ -400,12 +442,13 @@
         }
       },
       {
-        "path": "/roles/{roleId}",
+        "path": "/users/{userId}/bankStatuses/{bankStatusId}",
         "definition": {
-          "entityName": "Role",
+          "entityName": "BankStatus",
           "schema": {
-            "$ref": "#/backend/entities/Role"
+            "$ref": "#/backend/entities/BankStatus"
           },
+<<<<<<< HEAD
           "description": "Stores role definitions and associated permissions. Access restricted to administrative users.",
           "params": [
             {
@@ -471,15 +514,26 @@
             "$ref": "#/backend/entities/Role"
           },
           "description": "Stores role assignments for each user. Existence of a document grants the role to the user. Used for DBAC.",
+=======
+          "description": "Stores the checklist of bank proposal statuses for a specific user. Each user can only access their own checklist.",
+>>>>>>> 0af121b (File changes)
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user."
+<<<<<<< HEAD
 >>>>>>> 75fb1c4 (Set up a Firebase backend)
+=======
+            },
+            {
+              "name": "bankStatusId",
+              "description": "The unique identifier for the bank status entry."
+>>>>>>> 0af121b (File changes)
             }
           ]
         }
       }
+<<<<<<< HEAD
 <<<<<<< HEAD
     ]
   }
@@ -490,3 +544,8 @@
   }
 }
 >>>>>>> 75fb1c4 (Set up a Firebase backend)
+=======
+    ]
+  }
+}
+>>>>>>> 0af121b (File changes)

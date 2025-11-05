@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 'use client';
 
 import type { LucideIcon } from 'lucide-react';
+=======
+import type { LucideIcon } from "lucide-react";
+>>>>>>> 0af121b (File changes)
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Proposal {
@@ -55,6 +59,16 @@ export interface CLTRule {
   insertionDate?: Date;
   priority: 'Alta' | 'Média' | 'Baixa';
 >>>>>>> 6585a1e (Prioridades:)
+}
+
+export interface BankStatusDocument {
+  id: string;
+  name: string;
+  category: BankCategory;
+  status: 'Pendente' | 'Concluído';
+  insertionDate: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface PriorityTask {

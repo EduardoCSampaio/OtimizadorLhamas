@@ -50,7 +50,7 @@
         },
         "categories": {
           "type": "array",
-          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Sem Info).",
+          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
           "items": {
             "type": "string",
             "enum": [
@@ -132,6 +132,49 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Represents a single log entry for an action taken within the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the log entry."
+        },
+        "description": {
+          "type": "string",
+          "description": "A human-readable description of the activity."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the activity occurred."
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email of the user who performed the action."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of action performed.",
+          "enum": [
+            "CREATE",
+            "UPDATE",
+            "DELETE",
+            "LOGIN",
+            "STATUS_CHANGE"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "timestamp",
+        "userEmail",
+        "type"
+      ]
     }
   },
   "auth": {
@@ -207,6 +250,22 @@
             {
               "name": "checklistId",
               "description": "The unique identifier for the bank checklist entry, likely matching the bankStatusId."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/activityLogs/{logId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": {
+            "$ref": "#/backend/entities/ActivityLog"
+          },
+          "description": "Stores a log of all important activities within the application. Readable by all authenticated users, writable only via server-side logic (enforced by security rules allowing only create).",
+          "params": [
+            {
+              "name": "logId",
+              "description": "The unique identifier for the log entry."
             }
           ]
         }

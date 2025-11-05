@@ -29,7 +29,6 @@ export interface BankChecklistStatus {
   updatedAt: Timestamp;
 }
 
-
 export interface CLTRule {
   id: string;
   ruleName: string;
@@ -38,18 +37,18 @@ export interface CLTRule {
   updatedAt: Timestamp;
 }
 
-
 export interface PriorityTask {
   id: string;
   title: string;
-  client: string;
-  deadline: string;
+  description: string;
   priority: 'Alta' | 'Média' | 'Baixa';
+  bankName: string;
 }
 
 export interface Activity {
   id: string;
-  icon: LucideIcon;
   description: string;
-  timestamp: string;
+  timestamp: Timestamp;
+  userEmail: string;
+  type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE';
 }

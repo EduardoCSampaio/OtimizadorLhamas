@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Banknote } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { createUserProfile } from '@/firebase/user-data';
+import { createUserProfile, logUserSignIn } from '@/firebase/user-data';
 import { doc, getDoc } from 'firebase/firestore';
 
 
@@ -40,12 +40,13 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Verifica se o perfil do usuário existe e cria se não existir
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
           await createUserProfile(firestore, user);
         }
+        
+        logUserSignIn(firestore, user.email);
 
         toast({ title: 'Sucesso', description: 'Login realizado com sucesso!' });
         router.push('/');

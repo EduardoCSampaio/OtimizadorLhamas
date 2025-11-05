@@ -29,6 +29,8 @@ import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown, BookUp } from 'lucid
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
+import { createActivityLog } from '@/firebase/user-data';
+import { useUser } from '@/firebase/provider';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -58,6 +60,7 @@ const localLogoPath = '/logo.png';
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
+  const { user } = useUser();
   const isMaster = userRole === 'master';
 
   const cltRulesCollectionRef = useMemoFirebase(
@@ -95,7 +98,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
 
   const handleSaveNewRules = () => {
-    if (!cltRulesCollectionRef) return;
+    if (!cltRulesCollectionRef || !user) return;
     const rulesToSave = newRules.filter(rule => rule.ruleName.trim() !== '' && rule.ruleValue.trim() !== '');
     if (rulesToSave.length === 0) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Nenhuma regra válida para salvar.' });
@@ -111,12 +114,17 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       addDocumentNonBlocking(cltRulesCollectionRef, newRuleData);
     });
 
+    createActivityLog(firestore, user.email || 'unknown', {
+        type: 'CREATE',
+        description: `Adicionou ${rulesToSave.length} nova(s) regra(s) CLT para o banco ${bank.name}.`
+    });
+
     toast({ title: 'Sucesso!', description: `${rulesToSave.length} nova(s) regra(s) salva(s) para ${bank.name}.` });
     setNewRules([]);
   };
   
   const handleUpdateRule = () => {
-    if (!editingRule || !firestore) return;
+    if (!editingRule || !firestore || !user) return;
 
     const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', editingRule.id);
     updateDocumentNonBlocking(ruleDocRef, {
@@ -124,15 +132,29 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         ruleValue: editingRule.ruleValue,
         updatedAt: serverTimestamp()
     });
+
+    createActivityLog(firestore, user.email || 'unknown', {
+        type: 'UPDATE',
+        description: `Atualizou a regra CLT "${editingRule.ruleName}" para o banco ${bank.name}.`
+    });
     
     toast({ title: 'Regra Atualizada!', description: 'A regra foi atualizada com sucesso.' });
     setEditingRule(null);
   }
 
   const handleDeleteRule = (ruleId: string) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
+    const ruleToDelete = cltRules?.find(r => r.id === ruleId);
+    if (!ruleToDelete) return;
+
     const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', ruleId);
     deleteDocumentNonBlocking(ruleDocRef);
+
+     createActivityLog(firestore, user.email || 'unknown', {
+        type: 'DELETE',
+        description: `Removeu a regra CLT "${ruleToDelete.ruleName}" do banco ${bank.name}.`
+    });
+
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
   

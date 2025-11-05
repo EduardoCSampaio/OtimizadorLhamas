@@ -48,9 +48,18 @@ export default function PriorityTasks() {
 
     const checklistMap = new Map(userChecklist.map((item) => [item.id, item]));
 
-    const tasks = masterBanks
+    // Filter for banks that are in the "Inserção" category first.
+    const insertionBanks = masterBanks.filter(
+        (bank) => Array.isArray(bank.categories) && bank.categories.includes('Inserção')
+    );
+
+    const tasks = insertionBanks
       .map((bank) => {
         const checklistStatus = checklistMap.get(bank.id);
+        // If a bank is for insertion but not in the user's checklist yet, it won't be processed.
+        // This is fine, as another useEffect in bank-proposal-view creates it.
+        if (!checklistStatus) return null;
+        
         const status = checklistStatus?.status || 'Pendente';
         const insertionDate = checklistStatus?.insertionDate || null;
         
@@ -81,7 +90,7 @@ export default function PriorityTasks() {
     status: 'Pendente' | 'Concluído',
     insertionDate: any
   ): 'Alta' | 'Média' | 'Baixa' => {
-    if (!insertionDate) {
+    if (!insertionDate || status === 'Pendente') {
       return 'Média'; // Pending tasks are medium priority
     }
     const date = insertionDate.toDate ? insertionDate.toDate() : new Date();
@@ -93,13 +102,16 @@ export default function PriorityTasks() {
   };
   
   const getTaskTitle = (status: 'Pendente' | 'Concluído', bankName: string, insertionDate: any) => {
+      if (status === 'Pendente') {
+        return `Inserção pendente: ${bankName}`;
+      }
       const date = insertionDate?.toDate ? insertionDate.toDate() : new Date();
       const daysSinceUpdate = differenceInDays(new Date(), date);
       
       if (status === 'Concluído' && daysSinceUpdate >= 2) {
           return `Verificar inserção: ${bankName}`;
       }
-      return `Inserção pendente: ${bankName}`;
+      return `Inserção concluída: ${bankName}`;
   }
 
   const getTaskDescription = (status: 'Pendente' | 'Concluído', insertionDate: any) => {
@@ -133,7 +145,7 @@ export default function PriorityTasks() {
       <CardHeader>
         <CardTitle>Prioridades</CardTitle>
         <CardDescription>
-          Tarefas que requerem sua atenção imediata.
+          Tarefas de inserção que requerem sua atenção.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -165,9 +177,7 @@ export default function PriorityTasks() {
                                 className={`flex h-2 w-2 rounded-full ${
                                 task.priority === 'Alta'
                                     ? 'bg-red-500'
-                                    : task.priority === 'Média'
-                                    ? 'bg-yellow-500'
-                                    : 'bg-green-500'
+                                    : 'bg-yellow-500'
                                 }`}
                             />
                             <div className="grid gap-0.5">

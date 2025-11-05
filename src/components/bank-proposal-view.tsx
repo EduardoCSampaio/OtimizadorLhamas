@@ -20,17 +20,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { banks, bankCategories } from '@/lib/data';
-import type { Proposal, BankStatus, BankCategory } from '@/lib/types';
+import type { BankStatus, BankCategory } from '@/lib/types';
 import { CheckCircle, History } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-interface BankProposalViewProps {
-  proposal: Proposal;
-}
-
-export default function BankProposalView({ proposal }: BankProposalViewProps) {
+export default function BankProposalView() {
   const { toast } = useToast();
   const [bankStatuses, setBankStatuses] = useState<BankStatus[]>([]);
 
@@ -102,7 +98,7 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Banco</TableHead>
-            <TableHead>Status e Data</TableHead>
+            <TableHead>Status e Data da Última Atualização</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead className="text-right">Ação</TableHead>
           </TableRow>
@@ -127,7 +123,7 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
                   {bank.status === 'Pendente' ? (
                     <>
                       <CheckCircle className="h-4 w-4 mr-2"/>
-                      Marcar como Concluído
+                      Concluir
                     </>
                   ) : (
                     <>
@@ -147,11 +143,9 @@ export default function BankProposalView({ proposal }: BankProposalViewProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>2. Controlar Inserções</CardTitle>
+        <CardTitle>Checklist Diário de Inserções</CardTitle>
         <CardDescription>
-          Marque os bancos onde a proposta de{' '}
-          <span className="font-semibold text-primary">{proposal.clientName}</span>{' '}
-          já foi inserida.
+          Controle diário da inserção de propostas nos sistemas bancários.
         </CardDescription>
       </CardHeader>
       <CardContent>

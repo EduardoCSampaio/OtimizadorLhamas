@@ -107,8 +107,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     setIsExporting(true);
 
     const imagePromises = banks.map(bank => {
-        const isTwoSBank = bank.name.toLowerCase().includes('2s');
-        const logoUrl = isTwoSBank ? localLogoPath : bank.logoUrl;
+        const logoUrl = bank.logoUrl;
 
         if (!logoUrl) {
             return Promise.resolve({ bank, logoImage: undefined });
@@ -160,7 +159,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         return row;
     });
 
-    const headerHeight = 25;
+    const headerHeight = 30;
   
     doc.autoTable({
         head: head,
@@ -213,52 +212,54 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const y = cell.y + (cell.height - imgHeight) / 2;
                     
                     doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                } else {
-                    if (bankData?.bank) {
-                        const text = bankData.bank.name;
-                        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
-                        const textX = data.cell.x + (data.cell.width - textWidth) / 2;
-                        const textY = data.cell.y + data.cell.height / 2;
-                        doc.text(text, textX, textY, {baseline: 'middle'});
-                    }
+                } else if (bankData?.bank) {
+                    const text = bankData.bank.name;
+                    const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
+                    const textX = data.cell.x + (data.cell.width - textWidth) / 2;
+                    const textY = data.cell.y + data.cell.height / 2;
+                    doc.text(text, textX, textY, {baseline: 'middle'});
                 }
             }
         },
         willDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
                  if (allBanksData[data.row.index]?.logoImage) {
-                    data.cell.text = ''; // Clear text if logo exists
+                    data.cell.text = '';
                 }
             }
         },
         didDrawPage: (data) => {
             const pageMargin = 14;
-            let currentX = pageMargin;
+            const pageWidth = doc.internal.pageSize.getWidth();
 
-            if (companyLogoImage) {
-                const logoHeight = 15;
-                const aspectRatio = companyLogoImage.naturalWidth / companyLogoImage.naturalHeight;
-                const logoWidth = logoHeight * aspectRatio;
-                doc.addImage(companyLogoImage, 'PNG', currentX, 10, logoWidth, logoHeight);
-                currentX += logoWidth + 5;
-            }
-
+            // Draw Titles on the Left
             doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
-            doc.text('Crédito do Trabalhador', currentX, 18);
+            doc.text('Crédito do Trabalhador', pageMargin, 18);
             
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text('Confira as atualizações e oportunidades', currentX, 23);
+            doc.text('Confira as atualizações e oportunidades', pageMargin, 23);
 
+            // Draw Company Logo on the Right
+            if (companyLogoImage) {
+                const logoHeight = 20; 
+                const aspectRatio = companyLogoImage.naturalWidth / companyLogoImage.naturalHeight;
+                const logoWidth = logoHeight * aspectRatio;
+                const logoX = pageWidth - logoWidth - pageMargin;
+                const logoY = 10;
+                doc.addImage(companyLogoImage, 'PNG', logoX, logoY, logoWidth, logoHeight);
+            }
+
+            // Draw Page Number
             const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);
             const text = `Página ${data.pageNumber} de ${pageCount}`;
             const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
-            const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
+            const textX = (pageWidth - textWidth) / 2;
             doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
         },
-        margin: { top: headerHeight + 5 }
+        margin: { top: headerHeight }
     });
   
     doc.save(`regras_clt_consolidado.pdf`);

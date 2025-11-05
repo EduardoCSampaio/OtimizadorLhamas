@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import NextImage from 'next/image';
 import {
   Card,
@@ -67,6 +67,11 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
   const { data: banks, isLoading } =
     useCollection<BankMaster>(bankStatusesCollectionRef);
+    
+  const cltBanks = useMemo(() => {
+    return banks?.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('CLT')) || [];
+  }, [banks]);
+
 
   const handleManageRules = (bank: BankMaster) => {
     setSelectedBank(bank);
@@ -104,8 +109,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
 
-    // Deep copy of banks to avoid mutation issues
-    const banksCopy = JSON.parse(JSON.stringify(banks)) as BankMaster[];
+    const banksCopy: BankMaster[] = JSON.parse(JSON.stringify(banks));
 
     const dataForPdf: BankDataForPDF[] = await Promise.all(
         banksCopy.map(async (bank: BankMaster) => {
@@ -115,11 +119,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     logoImage = await loadImage(bank.logoUrl);
                 } catch (e) {
                     console.error(`Could not load image for ${bank.name}:`, e);
-                    toast({
-                        variant: 'destructive',
-                        title: `Erro ao carregar logo`,
-                        description: `Não foi possível carregar a logo para ${bank.name}.`,
-                    });
                 }
             }
 
@@ -160,7 +159,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             fillColor: [22, 22, 22],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            halign: 'center'
+            halign: 'center',
+            valign: 'middle',
         },
         styles: {
             fontSize: 8,
@@ -224,11 +224,11 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.text('Crédito do Trabalhador', pageMargin, 18);
+            doc.text('Crédito do Trabalhador', pageMargin, 23);
             
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text('Confira as atualizações e oportunidades', pageMargin, 23);
+            doc.text('Confira as atualizações e oportunidades', pageMargin, 28);
 
             if (companyLogoImage) {
                 const logoHeight = 25; 
@@ -246,7 +246,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const textX = (pageWidth - textWidth) / 2;
             doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
         },
-        margin: { top: headerHeight }
+        margin: { top: headerHeight + 10 }
     });
   
     doc.save(`regras_clt_consolidado.pdf`);
@@ -265,8 +265,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 <CardTitle>Regras de Negócio - CLT</CardTitle>
                 <CardDescription>
                     {isMaster
-                    ? 'Gerencie as regras de negócio para cada banco.'
-                    : 'Consulte as regras de negócio para cada banco.'}
+                    ? 'Gerencie as regras de negócio para os bancos da categoria CLT.'
+                    : 'Consulte as regras de negócio para os bancos da categoria CLT.'}
                 </CardDescription>
                 </div>
             </div>
@@ -278,7 +278,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         </CardHeader>
         <CardContent>
           {isLoading && <p>Carregando bancos...</p>}
-          {!isLoading && banks && banks.length > 0 ? (
+          {!isLoading && cltBanks && cltBanks.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -287,7 +287,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {banks?.map((bank) => (
+                {cltBanks?.map((bank) => (
                   <TableRow key={bank.id}>
                     <TableCell className="font-medium">
                        <div className="flex items-center gap-3">
@@ -316,7 +316,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
           ) : (
             !isLoading && (
               <p className="text-muted-foreground text-sm p-4 text-center">
-                Nenhum banco cadastrado no sistema.
+                Nenhum banco com a categoria 'CLT' encontrado.
               </p>
             )
           )}

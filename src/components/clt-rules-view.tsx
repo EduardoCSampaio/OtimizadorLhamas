@@ -457,19 +457,29 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 const bankData = allRulesData[data.row.index];
                  if (bankData && bankData.logoUrl) {
                     try {
-                        const cellPadding = 2;
-                        const containerSize = 20; 
-                        const x = data.cell.x + (data.cell.width - containerSize) / 2;
-                        const y = data.cell.y + cellPadding;
+                        const cell = data.cell;
+                        const img = new (window as any).Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.src = bankData.logoUrl;
                         
-                        doc.addImage(bankData.logoUrl, '', x, y, containerSize, containerSize, undefined, 'FAST');
+                        const desiredWidth = 20;
+                        const desiredHeight = 20;
+
+                        const ratio = Math.min(desiredWidth / img.naturalWidth, desiredHeight / img.naturalHeight);
+                        const imgWidth = img.naturalWidth * ratio;
+                        const imgHeight = img.naturalHeight * ratio;
+
+                        // Center the image in the cell
+                        const x = cell.x + (cell.width - imgWidth) / 2;
+                        const y = cell.y + 2; // Add some padding from the top
+
+                        doc.addImage(img.src, '', x, y, imgWidth, imgHeight, undefined, 'FAST');
                         
-                        if (data.cell.textPos) {
-                          data.cell.textPos.y = y + containerSize + 4;
+                        if (cell.textPos) {
+                          cell.textPos.y = y + imgHeight + 4;
                         }
                     } catch (e) {
                       console.error(`Failed to add image for ${bankData.bankName}:`, e);
-                      // If image fails, text position is still ok.
                     }
                 }
             }

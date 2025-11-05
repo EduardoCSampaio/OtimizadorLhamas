@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -391,6 +392,9 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
   const loadImage = (url: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
+        if (!url || typeof url !== 'string') {
+            return reject(new Error('URL inválida'));
+        }
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = () => resolve(img);
@@ -410,16 +414,16 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     
     let logoImage: HTMLImageElement | null = null;
     if (bank.logoUrl) {
-      try {
-        logoImage = await loadImage(bank.logoUrl);
-      } catch (e) {
-        console.error("Failed to load logo for PDF, skipping.", e);
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao carregar logo',
-          description: 'Não foi possível carregar a imagem da logo para o PDF.'
-        });
-      }
+        try {
+            logoImage = await loadImage(bank.logoUrl);
+        } catch (e) {
+            console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao carregar logo',
+                description: `Não foi possível carregar a logo para o banco ${bank.name}. Verifique a URL.`,
+            });
+        }
     }
     
     generatePdfContent(docPDF, logoImage);
@@ -447,17 +451,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             const x = (pageWidth - renderWidth) / 2;
 
             try {
-              const canvas = document.createElement('canvas');
-              canvas.width = logoImage.naturalWidth;
-              canvas.height = logoImage.naturalHeight;
-              const ctx = canvas.getContext('2d');
-              if (ctx) {
-                  ctx.drawImage(logoImage, 0, 0);
-                  docPDF.addImage(canvas.toDataURL('image/png'), 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
-              } else {
-                  docPDF.addImage(logoImage, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
-              }
-              startY += renderHeight + 5;
+                docPDF.addImage(logoImage, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
+                startY += renderHeight + 5;
             } catch (e) {
                 console.error("Error adding image to PDF:", e);
             }
@@ -693,3 +688,5 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     </Dialog>
   );
 }
+
+    

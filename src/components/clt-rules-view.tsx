@@ -1,3 +1,4 @@
+
 'use client';
 
 <<<<<<< HEAD
@@ -410,6 +411,19 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     setIsModalOpen(true);
   };
 
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            if (!url || typeof url !== 'string') {
+                return reject(new Error('URL inválida'));
+            }
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = (err) => reject(err);
+            img.src = url;
+        });
+    };
+
   const handleExportAllToPDF = async () => {
     if (!firestore || !banks || banks.length === 0) {
       toast({
@@ -426,15 +440,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     const allBanksData: BankDataForPDF[] = [];
     const loadImagePromises: Promise<void>[] = [];
 
-    const loadImage = (url: string): Promise<HTMLImageElement> => {
-      return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'Anonymous';
-          img.onload = () => resolve(img);
-          img.onerror = (err) => reject(err);
-          img.src = url;
-      });
-    };
 
     for (const bank of banks) {
         const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
@@ -455,8 +460,12 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                         bankData.logoImage = img;
                     })
                     .catch(e => {
-                        console.error(`Failed to load image for ${bank.name}:`, e);
-                        // Continue without the image if it fails to load
+                        console.error(`Falha ao carregar a imagem para ${bank.name}:`, e);
+                        toast({
+                          variant: 'destructive',
+                          title: 'Erro ao carregar logo',
+                          description: `Não foi possível carregar a logo para o banco ${bank.name}. Verifique a URL.`,
+                        });
                     })
             );
         }
@@ -509,10 +518,10 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
                     
                     let imgWidth, imgHeight;
-                    if (aspectRatio > 1) {
+                    if (aspectRatio > 1) { // Wider than tall
                         imgWidth = boxSize;
                         imgHeight = boxSize / aspectRatio;
-                    } else {
+                    } else { // Taller than wide or square
                         imgHeight = boxSize;
                         imgWidth = boxSize * aspectRatio;
                     }
@@ -521,16 +530,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const y = cell.y + 2; 
 
                     try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        const ctx = canvas.getContext('2d');
-                        if (ctx) {
-                            ctx.drawImage(img, 0, 0);
-                            doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                        } else {
-                            doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                        }
+                        doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
 
                         if (cell.textPos) {
                           cell.textPos.y = y + imgHeight + 4;
@@ -728,3 +728,5 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     </>
   );
 }
+
+    

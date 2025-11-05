@@ -180,17 +180,15 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Regras CLT para: {bank.name}</DialogTitle>
-          <DialogDescription>
-            <div className="flex justify-between items-center">
-              <span>
+          <div className="flex justify-between items-center pt-2">
+            <DialogDescription>
                 {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
-              </span>
-              <Button variant="outline" size="sm" onClick={handleExportToPDF}>
-                <FileDown className="mr-2 h-4 w-4" />
-                Exportar PDF
-              </Button>
-            </div>
-          </DialogDescription>
+            </DialogDescription>
+            <Button variant="outline" size="sm" onClick={handleExportToPDF}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar PDF
+            </Button>
+          </div>
         </DialogHeader>
         
         <div className='flex-grow overflow-y-auto pr-6'>

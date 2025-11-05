@@ -1,5 +1,6 @@
 'use client';
 
+<<<<<<< HEAD
 import { doc, setDoc, Firestore, collection, serverTimestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { addDocumentNonBlocking, setDocumentNonBlocking } from './non-blocking-updates';
@@ -13,11 +14,27 @@ import type { Activity } from '@/lib/types';
  */
 export function createUserProfile(firestore: Firestore, user: User) {
   const userRef = doc(firestore, 'users', user.uid);
+=======
+import { doc, setDoc, Firestore } from 'firebase/firestore';
+import { User } from 'firebase/auth';
+import { setDocumentNonBlocking } from './non-blocking-updates';
+
+/**
+ * Creates a user profile document in Firestore.
+ * @param firestore - The Firestore instance.
+ * @param user - The Firebase Auth user object.
+ */
+export async function createUserProfile(firestore: Firestore, user: User) {
+  const userRef = doc(firestore, 'users', user.uid);
+
+  // Assign 'master' role if the email matches, otherwise 'user'
+>>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
   const role = user.email === 'eduardo.campos@lhamascred.com.br' ? 'master' : 'user';
 
   const userData = {
     id: user.uid,
     email: user.email,
+<<<<<<< HEAD
     displayName: user.displayName || user.email?.split('@')[0],
     role: role,
   };
@@ -64,4 +81,12 @@ export function createActivityLog(
         timestamp: serverTimestamp() as any, // Cast to any to satisfy type temporarily
     };
     addDocumentNonBlocking(activityLogCollection, activityData);
+=======
+    displayName: user.displayName,
+    role: role,
+  };
+
+  // Use the non-blocking update which also handles permission errors
+  setDocumentNonBlocking(userRef, userData, { merge: false });
+>>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
 }

@@ -149,7 +149,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const base64data = reader.result as string;
-          doc.addImage(base64data, 'PNG', 15, 10, 30, 15);
+          doc.addImage(base64data, 'PNG', 15, 10, 40, 20); // Increased size
           generatePdfContent(doc);
         };
       } else {

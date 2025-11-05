@@ -111,7 +111,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         });
         const base64data = reader.result as string;
         // Adjust position for landscape
-        doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 45, 8, 30, 15);
+        doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 55, 8, 40, 20); // Increased size
       }
     } catch (error) {
        console.warn("Logo not found at /logo.png, skipping.");

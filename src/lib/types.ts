@@ -9,7 +9,7 @@ export interface Proposal {
   phone: string;
 }
 
-export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Custom';
+export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info';
 
 // Represents a master bank entry
 export interface BankMaster {

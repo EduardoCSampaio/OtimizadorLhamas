@@ -30,6 +30,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'fire
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { createUserProfile } from '@/firebase/user-data';
+import { doc, getDoc } from 'firebase/firestore';
 
 >>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
 
@@ -57,20 +58,31 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
 <<<<<<< HEAD
+<<<<<<< HEAD
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
+=======
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Verifica se o perfil do usuário existe e cria se não existir
+>>>>>>> fb41279 (Aparentemente, já fiz o cadastro tudo certinho antes dessa opção, então,)
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
           await createUserProfile(firestore, user);
         }
+<<<<<<< HEAD
         
         logUserSignIn(firestore, user.email);
 
 =======
         await signInWithEmailAndPassword(auth, email, password);
 >>>>>>> 0af121b (File changes)
+=======
+
+>>>>>>> fb41279 (Aparentemente, já fiz o cadastro tudo certinho antes dessa opção, então,)
         toast({ title: 'Sucesso', description: 'Login realizado com sucesso!' });
         router.push('/');
     } catch (error: any) {

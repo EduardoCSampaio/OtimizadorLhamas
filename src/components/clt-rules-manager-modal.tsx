@@ -24,7 +24,7 @@ import type { BankMaster, CLTRule } from '@/lib/types';
 import { useCollection, useFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
-import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown, BookUp } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
@@ -40,6 +40,18 @@ interface CltRulesManagerModalProps {
   userRole: 'master' | 'user' | null;
 }
 
+const defaultRuleNames = [
+    'Situação',
+    'Idade',
+    'Margem e Segurança',
+    'Limites',
+    'Prazo',
+    'Empréstimos',
+    'Tempo Empresa',
+    'Tempo CNPJ',
+    'Funcionários na Empresa'
+];
+
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -52,13 +64,13 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   
   const { data: cltRules, isLoading } = useCollection<CLTRule>(cltRulesCollectionRef);
 
-  const [newRules, setNewRules] = useState([{ ruleName: '', ruleValue: '' }]);
+  const [newRules, setNewRules] = useState<{ ruleName: string, ruleValue: string }[]>([]);
   const [editingRule, setEditingRule] = useState<CLTRule | null>(null);
 
   useEffect(() => {
     // Reset state when modal opens for a new bank
     if (isOpen) {
-      setNewRules([{ ruleName: '', ruleValue: '' }]);
+      setNewRules([]);
       setEditingRule(null);
     }
   }, [isOpen]);
@@ -96,7 +108,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     });
 
     toast({ title: 'Sucesso!', description: `${rulesToSave.length} nova(s) regra(s) salva(s) para ${bank.name}.` });
-    setNewRules([{ ruleName: '', ruleValue: '' }]);
+    setNewRules([]);
   };
   
   const handleUpdateRule = () => {
@@ -174,6 +186,20 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       // Save
       doc.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
   }
+
+  const loadDefaultRules = () => {
+    const existingRuleNames = new Set(cltRules?.map(r => r.ruleName) || []);
+    const rulesToLoad = defaultRuleNames
+        .filter(name => !existingRuleNames.has(name))
+        .map(name => ({ ruleName: name, ruleValue: '' }));
+
+    if (rulesToLoad.length === 0) {
+        toast({ title: 'Tudo pronto!', description: 'Todas as regras padrão já foram adicionadas para este banco.' });
+        return;
+    }
+    
+    setNewRules(prev => [...prev, ...rulesToLoad]);
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -244,21 +270,28 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 <div className="space-y-4">
                   {newRules.map((rule, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <Input placeholder="Nome da Regra" value={rule.ruleName} onChange={e => handleNewRuleChange(index, 'ruleName', e.target.value)} />
+                      <Input placeholder="Nome da Regra" value={rule.ruleName} onChange={e => handleNewRuleChange(index, 'ruleName', e.target.value)} disabled />
                       <Input placeholder="Valor da Regra" value={rule.ruleValue} onChange={e => handleNewRuleChange(index, 'ruleValue', e.target.value)} />
-                      <Button variant="ghost" size="icon" onClick={() => handleRemoveNewRuleInput(index)} disabled={newRules.length <= 1}>
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveNewRuleInput(index)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   ))}
-                  <div className='flex justify-between'>
-                    <Button variant="outline" size="sm" onClick={handleAddNewRuleInput}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Outra
-                    </Button>
-                    <Button size="sm" onClick={handleSaveNewRules}>
-                        <Save className='mr-2 h-4 w-4'/>
-                        Salvar Novas Regras
-                    </Button>
+                  <div className='flex justify-between items-start'>
+                    <div>
+                        <Button variant="outline" size="sm" onClick={handleAddNewRuleInput}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Manual
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={loadDefaultRules} className="ml-2">
+                            <BookUp className="mr-2 h-4 w-4" /> Carregar Padrão
+                        </Button>
+                    </div>
+                    {newRules.length > 0 && (
+                        <Button size="sm" onClick={handleSaveNewRules}>
+                            <Save className='mr-2 h-4 w-4'/>
+                            Salvar Novas Regras
+                        </Button>
+                    )}
                   </div>
                 </div>
               </>
@@ -272,3 +305,5 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     </Dialog>
   );
 }
+
+    

@@ -447,53 +447,41 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
 
-    const imagePromises = banks.map(bank => {
-        const logoUrl = bank.logoUrl;
+    const dataForPdf: BankDataForPDF[] = await Promise.all(
+        banks.map(async (bank) => {
+            let logoImage: HTMLImageElement | undefined = undefined;
+            if (bank.logoUrl) {
+                try {
+                    logoImage = await loadImage(bank.logoUrl);
+                } catch (e) {
+                    console.error(`Could not load image for ${bank.name}:`, e);
+                    toast({
+                        variant: 'destructive',
+                        title: `Erro ao carregar logo`,
+                        description: `Não foi possível carregar a logo para ${bank.name}.`,
+                    });
+                }
+            }
 
-        if (!logoUrl) {
-            return Promise.resolve({ bank, logoImage: undefined });
-        }
-        return loadImage(logoUrl)
-            .then(logoImage => ({ bank, logoImage }))
-            .catch(e => {
-                console.error(`Could not load image for ${bank.name}:`, e);
-                toast({
-                    variant: "destructive",
-                    title: `Erro ao carregar logo`,
-                    description: `Não foi possível carregar a logo para ${bank.name}.`,
-                });
-                return { bank, logoImage: undefined }; // Proceed without the image
-            });
-    });
-
-    const rulePromises = banks.map(bank => 
-        getDocs(collection(firestore, 'bankStatuses', bank.id, 'cltRules')).then(snapshot => {
+            const rulesSnapshot = await getDocs(collection(firestore, 'bankStatuses', bank.id, 'cltRules'));
             const rules: Record<string, string> = {};
-            snapshot.docs.forEach(doc => {
+            rulesSnapshot.docs.forEach(doc => {
                 const rule = doc.data() as CLTRule;
                 rules[rule.ruleName] = rule.ruleValue;
             });
-            return { bankId: bank.id, rules };
+            
+            return { bank: { ...bank }, rules, logoImage };
         })
     );
-
-    const [imageResults, ruleResults, companyLogoImage] = await Promise.all([
-        Promise.all(imagePromises),
-        Promise.all(rulePromises),
-        loadImage(localLogoPath).catch(() => undefined)
-    ]);
+     
+    const companyLogoImage = await loadImage(localLogoPath).catch(() => undefined);
     
-    const allBanksData: BankDataForPDF[] = imageResults.map(({ bank, logoImage }) => {
-        const bankRules = ruleResults.find(r => r.bankId === bank.id)?.rules || {};
-        return { bank, rules: bankRules, logoImage };
-    });
-
-    allBanksData.sort((a, b) => a.bank.name.localeCompare(b.bank.name));
+    dataForPdf.sort((a, b) => a.bank.name.localeCompare(b.bank.name));
     
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
 
     const head = [['Bancos', ...ruleOrder]];
-    const body = allBanksData.map(bankData => {
+    const body = dataForPdf.map(bankData => {
         const row : (string | null)[] = [ bankData.logoImage ? null : bankData.bank.name ];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
@@ -507,6 +495,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         head: head,
         body: body,
         theme: 'grid',
+        autoPaging: 'text',
         headStyles: { 
             fillColor: [22, 22, 22],
             textColor: [255, 255, 255],
@@ -530,7 +519,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
-                const bankData = allBanksData[data.row.index];
+                const bankData = dataForPdf[data.row.index];
                 if (bankData?.logoImage) {
                     const img = bankData.logoImage;
                     const cell = data.cell;
@@ -565,7 +554,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         },
         willDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
-                 if (allBanksData[data.row.index]?.logoImage) {
+                 if (dataForPdf[data.row.index]?.logoImage) {
                     data.cell.text = '';
                 }
             }

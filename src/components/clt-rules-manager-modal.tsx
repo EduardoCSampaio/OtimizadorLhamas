@@ -405,7 +405,11 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   
   const loadImage = (url: string): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
-          const img = new Image();
+          if (!url) {
+            reject(new Error("URL is empty"));
+            return;
+          }
+          const img = new window.Image();
           img.crossOrigin = 'Anonymous';
           img.onload = () => resolve(img);
           img.onerror = (err) => reject(err);
@@ -413,6 +417,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
           if (url.startsWith('/')) {
               img.src = window.location.origin + url;
           } else {
+              // Using a CORS proxy for external images
               img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
           }
       });
@@ -427,7 +432,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     setIsExporting(true);
     const docPDF = new jsPDF() as jsPDFWithAutoTable;
 
-    const logoUrl = bank.name === "2S" ? localLogoPath : bank.logoUrl;
+    const isTwoSBank = bank.name.toLowerCase().includes('2s');
+    const logoUrl = isTwoSBank ? localLogoPath : bank.logoUrl;
     
     let logoImage: HTMLImageElement | null = null;
     if (logoUrl) {
@@ -448,10 +454,11 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
 
   const generatePdfContent = (docPDF: jsPDFWithAutoTable, logoImage: HTMLImageElement | null) => {
-      const addHeader = () => {
+      const addHeader = (data: any) => {
         const pageWidth = docPDF.internal.pageSize.getWidth();
         let startY = 15;
 
+        // Draw Bank Logo or Name
         if (logoImage) {
             const maxBoxWidth = 50;
             const maxBoxHeight = 25; 
@@ -459,7 +466,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             
             let renderWidth, renderHeight;
 
-            if(logoImage.naturalWidth > logoImage.naturalHeight) { // Landscape
+            if (aspectRatio > 1) { // Landscape
                 renderWidth = Math.min(maxBoxWidth, logoImage.naturalWidth);
                 renderHeight = renderWidth / aspectRatio;
             } else { // Portrait or square
@@ -467,6 +474,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 renderWidth = renderHeight * aspectRatio;
             }
             
+            // Final check to fit in the box
             if (renderHeight > maxBoxHeight) {
                 renderHeight = maxBoxHeight;
                 renderWidth = renderHeight * aspectRatio;
@@ -478,16 +486,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             
             const x = (pageWidth - renderWidth) / 2;
 
-            try {
-                docPDF.addImage(logoImage, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
-                startY += renderHeight + 5;
-            } catch (e) {
-                console.error("Error adding image to PDF:", e);
-                // Fallback to text if image fails
-                docPDF.setFontSize(20);
-                docPDF.text(bank.name, pageWidth / 2, startY, { align: 'center' });
-                startY += 10;
-            }
+            docPDF.addImage(logoImage, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
+            startY += renderHeight + 5;
         } else {
              docPDF.setFontSize(20);
              docPDF.text(bank.name, pageWidth / 2, startY, { align: 'center' });
@@ -500,23 +500,27 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 
       const addFooter = (data: any) => {
           const pageCount = (docPDF.internal as any).getNumberOfPages ? (docPDF.internal as any).getNumberOfPages() : 1;
-          docPDF.setPage(data.pageNumber);
+          const pageNum = data.pageNumber;
+          docPDF.setPage(pageNum);
           docPDF.setFontSize(10);
-          docPDF.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, docPDF.internal.pageSize.getHeight() - 10);
+          const text = `Página ${pageNum} de ${pageCount}`;
+          const textWidth = docPDF.getStringUnitWidth(text) * docPDF.getFontSize() / docPDF.internal.scaleFactor;
+          docPDF.text(text, (docPDF.internal.pageSize.getWidth() - textWidth) / 2, docPDF.internal.pageSize.getHeight() - 10);
       };
       
-      const tableStartY = logoImage ? 60 : 40;
+      const headerHeight = logoImage ? 55 : 35;
 
       docPDF.autoTable({
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
-        headStyles: { fillColor: [41, 128, 185] },
+        headStyles: { fillColor: [41, 128, 185], textColor: [255,255,255] },
+        bodyStyles: { textColor: [0, 0, 0] },
         didDrawPage: (data) => {
-            addHeader();
+            addHeader(data);
             addFooter(data);
         },
-        margin: { top: tableStartY }
+        margin: { top: headerHeight }
       });
       
       docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);

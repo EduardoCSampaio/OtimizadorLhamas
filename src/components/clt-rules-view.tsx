@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import {
   Card,
   CardContent,
@@ -83,9 +83,21 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     }
   
     setIsExporting(true);
-    const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
-  
-    const allRulesData: BankDataForPDF[] = [];
+    
+    // Pre-fetch all rules and pre-load all images
+    const allBanksData: BankDataForPDF[] = [];
+    const loadImagePromises: Promise<void>[] = [];
+
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(err);
+          img.src = url;
+      });
+    };
+
     for (const bank of banks) {
         const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
         const rulesSnapshot = await getDocs(cltRulesCollectionRef);
@@ -94,36 +106,32 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const rule = doc.data() as CLTRule;
             rulesMap[rule.ruleName] = rule.ruleValue;
         });
-        allRulesData.push({ bankName: bank.name, rules: rulesMap, logoUrl: bank.logoUrl });
+
+        const bankData: BankDataForPDF = { bankName: bank.name, rules: rulesMap, logoUrl: bank.logoUrl };
+        allBanksData.push(bankData);
+
+        if (bank.logoUrl) {
+            loadImagePromises.push(
+                loadImage(bank.logoUrl)
+                    .then(img => {
+                        bankData.logoImage = img;
+                    })
+                    .catch(e => {
+                        console.error(`Failed to load image for ${bank.name}:`, e);
+                        // Continue without the image if it fails to load
+                    })
+            );
+        }
     }
     
-    // Pre-load all images
-    const loadImage = (url: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => resolve(img);
-            img.onerror = (err) => reject(err);
-            img.src = url;
-        });
-    };
+    // Wait for all images to be loaded before generating the PDF
+    await Promise.all(loadImagePromises);
 
-    await Promise.all(
-        allRulesData.map(async (bankData) => {
-            if (bankData.logoUrl) {
-                try {
-                    bankData.logoImage = await loadImage(bankData.logoUrl);
-                } catch (e) {
-                    console.error(`Failed to load image for ${bankData.bankName}:`, e);
-                    // Continue without the image if it fails to load
-                }
-            }
-        })
-    );
-      
+    const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
+
     // Prepare table data
     const head = [['Bancos', ...ruleOrder]];
-    const body = allRulesData.map(bankData => {
+    const body = allBanksData.map(bankData => {
         const row : any[] = [{ content: bankData.bankName, styles: { halign: 'center', valign: 'bottom' } }];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
@@ -154,48 +162,41 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
-                const bankData = allRulesData[data.row.index];
-                 if (bankData && bankData.logoImage) {
+                const bankData = allBanksData[data.row.index];
+                if (bankData && bankData.logoImage) {
                     const img = bankData.logoImage;
                     const cell = data.cell;
                     
-                    const cellWidth = cell.width - cell.padding('horizontal');
-                    const cellHeight = cell.height - cell.padding('vertical');
-                    
-                    const boxSize = 20; // The 'box' to fit the image into
+                    const boxSize = 20;
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
                     
                     let imgWidth, imgHeight;
-                    if (aspectRatio > 1) { // Wider than tall
+                    if (aspectRatio > 1) {
                         imgWidth = boxSize;
                         imgHeight = boxSize / aspectRatio;
-                    } else { // Taller than wide or square
+                    } else {
                         imgHeight = boxSize;
                         imgWidth = boxSize * aspectRatio;
                     }
                     
-                    // Center the image in the cell
                     const x = cell.x + (cell.width - imgWidth) / 2;
-                    const y = cell.y + 2;
+                    const y = cell.y + 2; 
 
                     try {
-                      // Use canvas to draw image and preserve transparency
-                      const canvas = document.createElement('canvas');
-                      canvas.width = img.naturalWidth;
-                      canvas.height = img.naturalHeight;
-                      const ctx = canvas.getContext('2d');
-                      if (ctx) {
-                          ctx.drawImage(img, 0, 0);
-                          doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                      } else {
-                          // Fallback for safety, though unlikely to fail
-                          doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                      }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                            ctx.drawImage(img, 0, 0);
+                            doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                        } else {
+                            doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                        }
 
-                      // Adjust text position
-                      if (cell.textPos) {
-                        cell.textPos.y = y + imgHeight + 3;
-                      }
+                        if (cell.textPos) {
+                          cell.textPos.y = y + imgHeight + 4;
+                        }
                     } catch (e) {
                       console.error(`Failed to add image for ${bankData.bankName}:`, e);
                     }
@@ -263,7 +264,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     <TableCell className="font-medium">
                        <div className="flex items-center gap-3">
                         {bank.logoUrl ? (
-                          <Image src={bank.logoUrl} alt={`${bank.name} logo`} width={24} height={24} className="h-6 w-6 object-contain"/>
+                          <NextImage src={bank.logoUrl} alt={`${bank.name} logo`} width={24} height={24} className="h-6 w-6 object-contain"/>
                         ) : (
                           <Landmark className="h-6 w-6 text-muted-foreground" />
                         )}

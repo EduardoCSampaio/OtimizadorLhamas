@@ -59,7 +59,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
 >>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
 }
 
-const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
+const allCategories: BankCategory[] = ['Inserção', 'CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
 
 export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBankModalProps) {
   const { toast } = useToast();

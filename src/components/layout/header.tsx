@@ -7,6 +7,7 @@ import {
   Banknote,
   Bell,
   Building2,
+<<<<<<< HEAD
   KeyRound,
   LayoutDashboard,
 =======
@@ -14,6 +15,9 @@ import {
   Banknote,
   Bell,
 >>>>>>> 6832438 (Ainda estou sem botões para poder transitar entre o painel principal e o)
+=======
+  LayoutDashboard,
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
   LifeBuoy,
   LogOut,
   Settings,
@@ -91,8 +95,9 @@ export default function Header() {
 >>>>>>> 0af121b (File changes)
 
   const navLinks = [
-    { href: '/', label: 'Painel Principal' },
-    { href: '/regras-clt', label: 'Regras CLT' },
+    { href: '/', label: 'Painel Principal', icon: LayoutDashboard },
+    { href: '/bancos', label: 'Bancos', icon: Building2 },
+    { href: '/regras-clt', label: 'Regras CLT', icon: Settings },
   ];
 
   return (
@@ -223,11 +228,14 @@ export default function Header() {
                  {navLinks.map((link) => (
                     <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
                         <link.icon className="mr-2 h-4 w-4" />
+<<<<<<< HEAD
 =======
                <DropdownMenuGroup className="md:hidden">
                  {navLinks.map((link) => (
                     <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
 >>>>>>> 6832438 (Ainda estou sem botões para poder transitar entre o painel principal e o)
+=======
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
                         <span>{link.label}</span>
                     </DropdownMenuItem>
                  ))}
@@ -247,7 +255,7 @@ export default function Header() {
 =======
 >>>>>>> 6832438 (Ainda estou sem botões para poder transitar entre o painel principal e o)
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/perfil')}>
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Perfil</span>
                 </DropdownMenuItem>

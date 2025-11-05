@@ -1,10 +1,14 @@
 "use client";
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { useState, useEffect, useMemo } from 'react';
 =======
 import { useState, useEffect } from 'react';
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
+=======
+import { useState, useEffect, useMemo } from 'react';
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 import Image from 'next/image';
 import {
   Card,
@@ -21,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+<<<<<<< HEAD
 <<<<<<< HEAD
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -127,17 +132,29 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocki
 =======
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
+=======
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import type { BankChecklistStatus, BankMaster, BankCategory } from '@/lib/types';
+import { CheckCircle, History, Landmark } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { format, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useCollection, useFirebase, useUser } from '@/firebase';
+import { collection, doc, serverTimestamp, writeBatch, query, orderBy, updateDoc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 import { useMemoFirebase } from '@/firebase/provider';
-import EditBankModal from './edit-bank-modal';
 import { createActivityLog } from '@/firebase/user-data';
+import { Skeleton } from './ui/skeleton';
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
-const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
 
 export default function BankProposalView() {
   const { toast } = useToast();
   const { user } = useUser();
   const { firestore } = useFirebase();
+<<<<<<< HEAD
 
 <<<<<<< HEAD
   const bankStatusesCollectionRef = useMemoFirebase(() => {
@@ -162,13 +179,15 @@ export default function BankProposalView() {
   const isMaster = userProfile?.role === 'master';
 
   // Master list of all banks, ordered by name
+=======
+  
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
   const banksMasterCollectionRef = useMemoFirebase(
       () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
       [firestore]
   );
   const { data: masterBanks, isLoading: isLoadingMasterBanks } = useCollection<BankMaster>(banksMasterCollectionRef);
 
-  // User-specific checklist statuses
   const userChecklistCollectionRef = useMemoFirebase(() => {
       if (!firestore || !user) return null;
       return collection(firestore, 'users', user.uid, 'bankChecklists');
@@ -177,7 +196,6 @@ export default function BankProposalView() {
 
   const [combinedBankData, setCombinedBankData] = useState<CombinedBankStatus[]>([]);
 
-  // --- Effects ---
   // Effect to create checklist items for new banks
   useEffect(() => {
     if (!firestore || !user || !masterBanks || !userChecklist) return;
@@ -200,7 +218,7 @@ export default function BankProposalView() {
     }
   }, [masterBanks, userChecklist, firestore, user]);
 
-  // Effect to combine master bank list with user checklist
+  // Effect to combine master bank list with user checklist, filtering for "Inserção"
   useEffect(() => {
       if (isLoadingMasterBanks || isLoadingChecklist || !masterBanks) {
           setCombinedBankData([]);
@@ -208,17 +226,19 @@ export default function BankProposalView() {
       }
       
       const checklistMap = new Map(userChecklist?.map(item => [item.id, item]));
+
+      const insertionBanks = masterBanks.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('Inserção'));
       
-      const combined = masterBanks.map(bank => {
+      const combined = insertionBanks.map(bank => {
           const checklistStatus = checklistMap.get(bank.id);
           const status = checklistStatus?.status || 'Pendente';
           const insertionDate = checklistStatus?.insertionDate || null;
           const updatedAt = checklistStatus?.updatedAt || bank.updatedAt;
 
           return {
-              ...bank, // master bank data
-              ...checklistStatus, // user checklist data
-              id: bank.id, // ensure master id is used
+              ...bank,
+              ...checklistStatus,
+              id: bank.id, 
               status: status,
               insertionDate: insertionDate,
               updatedAt: updatedAt,
@@ -232,7 +252,6 @@ export default function BankProposalView() {
   }, [masterBanks, userChecklist, isLoadingMasterBanks, isLoadingChecklist]);
 
 
-  // --- Helper Functions ---
   const calculatePriority = (status: 'Pendente' | 'Concluído', insertionDate: any): 'Alta' | 'Média' | 'Baixa' => {
       if (status === 'Pendente' || !insertionDate) {
         return 'Média'; 
@@ -259,6 +278,7 @@ export default function BankProposalView() {
       case 'FGTS': return 'secondary';
       case 'GOV': return 'outline';
       case 'INSS': return 'destructive';
+      case 'Inserção': return 'default';
       default: return 'secondary';
     }
   };
@@ -278,57 +298,6 @@ export default function BankProposalView() {
             );
     }
   }
-
-
-  // --- Event Handlers ---
-
-  const handleNewCategoryChange = (category: BankCategory) => {
-    setNewBankCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const handleAddBank = async () => {
-    if (newBankName.trim() === '') {
-        toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
-        return;
-    }
-     if (newBankCategories.length === 0) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Selecione pelo menos uma categoria.' });
-        return;
-    }
-    if (!firestore || !user) return;
-
-    const masterBankCollection = collection(firestore, 'bankStatuses');
-    const q = query(masterBankCollection, where("name", "==", newBankName.trim()));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Este banco já existe.' });
-        return;
-    }
-
-    const newBankData: Omit<BankMaster, 'id'> = {
-      name: newBankName.trim(),
-      logoUrl: newBankLogoUrl.trim(),
-      categories: newBankCategories,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    addDocumentNonBlocking(masterBankCollection, newBankData);
-    
-    createActivityLog(firestore, user.email || 'unknown', {
-        type: 'CREATE',
-        description: `Adicionou o banco: ${newBankName.trim()}`
-    });
-
-    setNewBankName('');
-    setNewBankLogoUrl('');
-    setNewBankCategories([]);
-    toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
-  };
 
   const handleToggleStatus = (bankId: string) => {
 <<<<<<< HEAD
@@ -441,7 +410,7 @@ export default function BankProposalView() {
     });
 
     createActivityLog(firestore, user.email || 'unknown', {
-        type: newStatus === 'Concluído' ? 'STATUS_CHANGE' : 'UPDATE',
+        type: newStatus === 'Concluído' ? 'STATUS_CHANGE' : 'REOPEN',
         description: `Alterou o status de ${currentBank.name} para ${newStatus}`
     });
 
@@ -451,6 +420,7 @@ export default function BankProposalView() {
     });
 >>>>>>> 0af121b (File changes)
   };
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 
@@ -592,45 +562,14 @@ export default function BankProposalView() {
     setIsEditModalOpen(true);
   };
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
+=======
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
   
-  const handleUpdateBank = async (updatedData: { name: string; logoUrl: string, categories: BankCategory[] }) => {
-    if (!firestore || !selectedBank || !user) return;
-  
-    const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
-  
-    try {
-      await updateDoc(bankMasterRef, {
-        name: updatedData.name,
-        logoUrl: updatedData.logoUrl,
-        categories: updatedData.categories,
-        updatedAt: serverTimestamp()
-      });
-  
-      createActivityLog(firestore, user.email || 'unknown', {
-          type: 'UPDATE',
-          description: `Atualizou os dados do banco: ${updatedData.name}`
-      });
-
-      toast({
-        title: 'Banco Atualizado!',
-        description: `O banco ${updatedData.name} foi atualizado com sucesso.`,
-      });
-      setIsEditModalOpen(false);
-      setSelectedBank(null);
-    } catch (error) {
-      console.error('Error updating bank:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao atualizar',
-        description: 'Não foi possível atualizar o banco.',
-      });
-    }
-  };
-
   const isLoading = isLoadingMasterBanks || isLoadingChecklist;
 
   return (
     <>
+<<<<<<< HEAD
 <<<<<<< HEAD
       <Card>
         <CardHeader>
@@ -802,14 +741,17 @@ export default function BankProposalView() {
         </Card>
       )}
 
+=======
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
       <Card>
         <CardHeader>
           <CardTitle>Checklist Diário de Inserções</CardTitle>
           <CardDescription>
-            Controle diário da inserção de propostas nos sistemas bancários.
+            Controle diário da inserção de propostas nos sistemas bancários. Apenas bancos marcados com a categoria "Inserção" são exibidos aqui.
           </CardDescription>
         </CardHeader>
         <CardContent>
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
           {bankStatuses.length > 0 ? (
@@ -820,12 +762,22 @@ export default function BankProposalView() {
 >>>>>>> 0af121b (File changes)
 =======
           {isLoading && <p>Carregando checklist...</p>}
+=======
+          {isLoading && 
+            <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+          }
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
           {!isLoading && combinedBankData.length > 0 ? (
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Banco</TableHead>
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -838,6 +790,9 @@ export default function BankProposalView() {
 =======
                   <TableHead>Categorias</TableHead>
 >>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
+=======
+                  <TableHead>Outras Categorias</TableHead>
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
                   <TableHead>Status e Data da Última Atualização</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
@@ -884,7 +839,7 @@ export default function BankProposalView() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {bank.categories?.map(cat => (
+                        {bank.categories?.filter(c => c !== 'Inserção').map(cat => (
                           <Badge key={cat} variant={getCategoryBadgeVariant(cat)}>{cat}</Badge>
                         ))}
                       </div>
@@ -919,23 +874,13 @@ export default function BankProposalView() {
                           </>
                         )}
                       </Button>
-                      {isMaster && (
-                          <Button 
-                              variant="outline" 
-                              size="icon" 
-                              onClick={() => handleOpenEditModal(bank)}
-                              className="h-8 w-8"
-                          >
-                              <Edit className="h-4 w-4"/>
-                              <span className="sr-only">Editar Banco</span>
-                          </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -949,17 +894,12 @@ export default function BankProposalView() {
 =======
             !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ao sistema ainda. Comece adicionando um acima.</p>
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+            !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco de inserção encontrado. Vá para a página 'Bancos' para adicionar bancos e marcá-los com a categoria "Inserção".</p>
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
           )}
         </CardContent>
       </Card>
-      {selectedBank && (
-        <EditBankModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          bank={selectedBank}
-          onSave={handleUpdateBank}
-        />
-      )}
     </>
   );
 }

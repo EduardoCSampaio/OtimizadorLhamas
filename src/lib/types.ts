@@ -18,6 +18,7 @@ export interface Proposal {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info' | 'Inserção';
 =======
 export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6' | 'Custom';
@@ -37,6 +38,9 @@ export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Custom';
 =======
 export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info';
 >>>>>>> d1685e6 (Nessa categoria CUSTOM, muda para "Sem Info")
+=======
+export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info' | 'Inserção';
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 
 // Represents a master bank entry
 export interface BankMaster {
@@ -128,6 +132,7 @@ export interface Activity {
   timestamp: Timestamp;
   userEmail: string;
 <<<<<<< HEAD
+<<<<<<< HEAD
   type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE' | 'REOPEN';
 }
 
@@ -154,4 +159,7 @@ export interface BankAccessDetails {
 =======
   type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE';
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+  type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE' | 'REOPEN';
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 }

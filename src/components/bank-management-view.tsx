@@ -1,6 +1,10 @@
 'use client';
 
+<<<<<<< HEAD
 import { useState, useMemo } from 'react';
+=======
+import { useState, useEffect, useMemo } from 'react';
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 import Image from 'next/image';
 import {
   Card,
@@ -22,9 +26,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+<<<<<<< HEAD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BankMaster, BankCategory, Promotora } from '@/lib/types';
 import { Landmark, PlusCircle, Edit, Briefcase } from 'lucide-react';
+=======
+import type { BankMaster, BankCategory } from '@/lib/types';
+import { Landmark, PlusCircle, Edit } from 'lucide-react';
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useUser } from '@/firebase';
 import {
@@ -37,7 +46,14 @@ import {
   orderBy,
   updateDoc,
 } from 'firebase/firestore';
+<<<<<<< HEAD
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+=======
+import {
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from '@/firebase/non-blocking-updates';
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 import { useMemoFirebase } from '@/firebase/provider';
 import EditBankModal from './edit-bank-modal';
 import { createActivityLog } from '@/firebase/user-data';
@@ -50,6 +66,7 @@ export default function BankManagementView() {
   const { user } = useUser();
   const { firestore } = useFirebase();
 
+<<<<<<< HEAD
   // Form state
   const [newBankName, setNewBankName] = useState('');
   const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
@@ -78,6 +95,22 @@ export default function BankManagementView() {
     return new Map(promotoras.map(p => [p.id, p]));
   }, [promotoras]);
 
+=======
+  const [newBankName, setNewBankName] = useState('');
+  const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
+  const [newBankCategories, setNewBankCategories] = useState<BankCategory[]>([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedBank, setSelectedBank] = useState<BankMaster | null>(null);
+
+  // Master list of all banks, ordered by name
+  const banksMasterCollectionRef = useMemoFirebase(
+    () =>
+      firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null,
+    [firestore]
+  );
+  const { data: masterBanks, isLoading: isLoadingMasterBanks } =
+    useCollection<BankMaster>(banksMasterCollectionRef);
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 
   const getCategoryBadgeVariant = (category: BankCategory) => {
     switch (category) {
@@ -85,7 +118,11 @@ export default function BankManagementView() {
       case 'FGTS': return 'secondary';
       case 'GOV': return 'outline';
       case 'INSS': return 'destructive';
+<<<<<<< HEAD
       case 'Inserção': return 'default';
+=======
+      case 'Inserção': return 'default'; // Or choose a specific color
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
       default: return 'secondary';
     }
   };
@@ -129,7 +166,10 @@ export default function BankManagementView() {
       name: newBankName.trim(),
       logoUrl: newBankLogoUrl.trim(),
       categories: newBankCategories,
+<<<<<<< HEAD
       promotoraId: newBankPromotoraId === 'none' ? undefined : newBankPromotoraId,
+=======
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -141,12 +181,18 @@ export default function BankManagementView() {
       description: `Adicionou o banco: ${newBankName.trim()}`,
     });
 
+<<<<<<< HEAD
     // Reset form
     setNewBankName('');
     setNewBankLogoUrl('');
     setNewBankCategories([]);
     setNewBankPromotoraId(undefined);
 
+=======
+    setNewBankName('');
+    setNewBankLogoUrl('');
+    setNewBankCategories([]);
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
     toast({
       title: 'Banco Adicionado!',
       description: `O banco ${newBankName} foi adicionado com sucesso.`,
@@ -162,14 +208,26 @@ export default function BankManagementView() {
     name: string;
     logoUrl: string;
     categories: BankCategory[];
+<<<<<<< HEAD
     promotoraId?: string;
+=======
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
   }) => {
     if (!firestore || !selectedBank || !user) return;
 
     const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
 
     try {
+<<<<<<< HEAD
       await updateDoc(bankMasterRef, { ...updatedData, updatedAt: serverTimestamp() });
+=======
+      await updateDoc(bankMasterRef, {
+        name: updatedData.name,
+        logoUrl: updatedData.logoUrl,
+        categories: updatedData.categories,
+        updatedAt: serverTimestamp(),
+      });
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 
       createActivityLog(firestore, user.email || 'unknown', {
         type: 'UPDATE',
@@ -198,7 +256,12 @@ export default function BankManagementView() {
         <CardHeader>
           <CardTitle>Adicionar Novo Banco</CardTitle>
           <CardDescription>
+<<<<<<< HEAD
             Insira os detalhes do banco para adicioná-lo ao sistema.
+=======
+            Insira os detalhes do banco para adicioná-lo ao sistema. Marque 'Inserção' para
+            que ele apareça no checklist diário.
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -214,7 +277,11 @@ export default function BankManagementView() {
                   onChange={(e) => setNewBankName(e.target.value)}
                 />
               </div>
+<<<<<<< HEAD
                <div className="space-y-2">
+=======
+              <div className="space-y-2">
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
                 <Label htmlFor="bank-logo">URL da Logo</Label>
                 <Input
                   id="bank-logo"
@@ -224,6 +291,7 @@ export default function BankManagementView() {
                   onChange={(e) => setNewBankLogoUrl(e.target.value)}
                 />
               </div>
+<<<<<<< HEAD
               <div className="space-y-2">
                 <Label htmlFor="promotora-select">Promotora</Label>
                 <Select value={newBankPromotoraId} onValueChange={setNewBankPromotoraId}>
@@ -258,6 +326,26 @@ export default function BankManagementView() {
                     </Label>
                   </div>
                 ))}
+=======
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Categorias</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 p-2 border rounded-md">
+                  {allCategories.map((cat) => (
+                    <div key={cat} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`new-cat-${cat}`}
+                        checked={newBankCategories.includes(cat)}
+                        onCheckedChange={() => handleNewCategoryChange(cat)}
+                      />
+                      <Label htmlFor={`new-cat-${cat}`} className="font-normal">
+                        {cat}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
               </div>
             </div>
           </div>
@@ -272,7 +360,11 @@ export default function BankManagementView() {
 
       <Card>
         <CardHeader>
+<<<<<<< HEAD
           <CardTitle>Bancos Cadastrados</CardTitle>
+=======
+          <CardTitle>Gerenciamento de Bancos</CardTitle>
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
           <CardDescription>
             Visualize e edite todos os bancos cadastrados no sistema.
           </CardDescription>
@@ -290,12 +382,16 @@ export default function BankManagementView() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Banco</TableHead>
+<<<<<<< HEAD
                   <TableHead>Promotora</TableHead>
+=======
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
                   <TableHead>Categorias</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+<<<<<<< HEAD
                 {masterBanks.map((bank) => {
                     const promotora = bank.promotoraId ? promotorasMap.get(bank.promotoraId) : null;
                     return (
@@ -353,6 +449,48 @@ export default function BankManagementView() {
                         </TableRow>
                     );
                 })}
+=======
+                {masterBanks.map((bank) => (
+                  <TableRow key={bank.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        {bank.logoUrl ? (
+                          <Image
+                            src={bank.logoUrl}
+                            alt={`${bank.name} logo`}
+                            width={24}
+                            height={24}
+                            className="h-6 w-6 object-contain"
+                          />
+                        ) : (
+                          <Landmark className="h-6 w-6 text-muted-foreground" />
+                        )}
+                        <span>{bank.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {bank.categories?.map((cat) => (
+                          <Badge key={cat} variant={getCategoryBadgeVariant(cat)}>
+                            {cat}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleOpenEditModal(bank)}
+                        className="h-8 w-8"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Editar Banco</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
               </TableBody>
             </Table>
           ) : (
@@ -369,7 +507,10 @@ export default function BankManagementView() {
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           bank={selectedBank}
+<<<<<<< HEAD
           promotoras={promotoras || []}
+=======
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
           onSave={handleUpdateBank}
         />
       )}

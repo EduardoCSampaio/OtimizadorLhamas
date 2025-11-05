@@ -122,10 +122,14 @@
         "categories": {
           "type": "array",
 <<<<<<< HEAD
+<<<<<<< HEAD
           "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Inserção, Sem Info).",
 =======
           "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Inserção, Sem Info).",
+>>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
           "items": {
             "type": "string",
             "enum": [

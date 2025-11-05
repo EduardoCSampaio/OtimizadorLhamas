@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -80,7 +81,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
               reject(new Error("URL is empty or null."));
               return;
           }
-          const img = new Image();
+          const img = new window.Image();
           img.crossOrigin = 'Anonymous';
           img.onload = () => resolve(img);
           img.onerror = (err) => reject(err);
@@ -88,7 +89,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
           if (url.startsWith('/')) {
               img.src = window.location.origin + url;
           } else {
-              img.src = url;
+               img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
           }
       });
   };
@@ -105,44 +106,49 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
 
-    const bankDataPromises: Promise<BankDataForPDF> = banks.map(bank => {
-        const rulesPromise = getDocs(collection(firestore, 'bankStatuses', bank.id, 'cltRules')).then(snapshot => {
+    const imagePromises = banks.map(bank => {
+        const isTwoSBank = bank.name.toLowerCase().includes('2s');
+        const logoUrl = isTwoSBank ? localLogoPath : bank.logoUrl;
+
+        if (!logoUrl) {
+            return Promise.resolve({ bank, rules: {}, logoImage: undefined });
+        }
+        return loadImage(logoUrl)
+            .then(logoImage => ({ bank, logoImage }))
+            .catch(e => {
+                toast({
+                    variant: "destructive",
+                    title: `Erro ao carregar logo`,
+                    description: `Não foi possível carregar a logo para ${bank.name}.`,
+                });
+                return { bank, logoImage: undefined }; // Proceed without the image
+            });
+    });
+
+    const rulePromises = banks.map(bank => 
+        getDocs(collection(firestore, 'bankStatuses', bank.id, 'cltRules')).then(snapshot => {
             const rules: Record<string, string> = {};
             snapshot.docs.forEach(doc => {
                 const rule = doc.data() as CLTRule;
                 rules[rule.ruleName] = rule.ruleValue;
             });
-            return rules;
-        });
+            return { bankId: bank.id, rules };
+        })
+    );
 
-        const logoUrl = bank.name === "2S" ? localLogoPath : bank.logoUrl;
-        
-        let imagePromise: Promise<HTMLImageElement | undefined> = Promise.resolve(undefined);
-        if (logoUrl) {
-            imagePromise = loadImage(logoUrl).catch(e => {
-                toast({
-                    variant: "destructive",
-                    title: `Erro ao carregar logo`,
-                    description: `Não foi possível carregar a logo para ${bank.name}. Verifique a URL.`,
-                });
-                return undefined;
-            });
-        }
-
-        return Promise.all([rulesPromise, imagePromise]).then(([rules, logoImage]) => {
-            return { bank, rules, logoImage };
-        });
+    const [imageResults, ruleResults, companyLogoImage] = await Promise.all([
+        Promise.all(imagePromises),
+        Promise.all(rulePromises),
+        loadImage(localLogoPath).catch(() => undefined)
+    ]);
+    
+    const allBanksData: BankDataForPDF[] = imageResults.map(({ bank, logoImage }) => {
+        const bankRules = ruleResults.find(r => r.bankId === bank.id)?.rules || {};
+        return { bank, rules: bankRules, logoImage };
     });
 
-    const allBanksData = await Promise.all(bankDataPromises);
     allBanksData.sort((a, b) => a.bank.name.localeCompare(b.bank.name));
     
-    // Load company logo
-    const companyLogoImage = await loadImage(localLogoPath).catch(e => {
-        console.error("Failed to load company logo:", e);
-        return undefined;
-    });
-
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
 
     const head = [['Bancos', ...ruleOrder]];
@@ -154,7 +160,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         return row;
     });
 
-    const headerHeight = 30;
+    const headerHeight = 25;
   
     doc.autoTable({
         head: head,
@@ -170,14 +176,15 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             fontSize: 8,
             cellPadding: 2,
             valign: 'middle',
-            halign: 'center'
+            halign: 'center',
+            textColor: [0, 0, 0], // Black text for body cells
         },
         columnStyles: {
             0: { fontStyle: 'bold', minCellWidth: 40, halign: 'left' }
         },
         didParseCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
-                 data.cell.styles.minCellHeight = 25;
+                 data.cell.styles.minCellHeight = 20;
             }
         },
         didDrawCell: (data) => {
@@ -206,6 +213,20 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const y = cell.y + (cell.height - imgHeight) / 2;
                     
                     doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                } else {
+                    // Manually center the bank name text if there's no image
+                    const text = bankData.bank.name;
+                    const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
+                    const textX = data.cell.x + (data.cell.width - textWidth) / 2;
+                    const textY = data.cell.y + data.cell.height / 2;
+                    doc.text(text, textX, textY, {baseline: 'middle'});
+                }
+            }
+        },
+        willDrawCell: (data) => {
+            if (data.column.index === 0 && data.row.section === 'body') {
+                 if (allBanksData[data.row.index]?.logoImage) {
+                    data.cell.text = ''; // Clear text if logo exists
                 }
             }
         },
@@ -227,7 +248,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text('Confira as atualizações e oportunidades', currentX, 24);
+            doc.text('Confira as atualizações e oportunidades', currentX, 23);
 
             const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);

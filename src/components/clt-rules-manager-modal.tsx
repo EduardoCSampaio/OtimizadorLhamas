@@ -136,28 +136,25 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
   
-  const loadImage = (url: string): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      if (!url || typeof url !== 'string') {
-        return reject(new Error('URL da imagem inválida ou ausente.'));
-      }
-  
-      const img = new window.Image();
-      img.crossOrigin = 'Anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = (err) => reject(err);
-  
-      // Handle local and external URLs
-      if (url.startsWith('http')) {
-        // For external images, use a CORS proxy to avoid tainted canvas
-        const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
-        img.src = proxiedUrl;
-      } else {
-        // For local images (e.g., /logo.png), use them directly
-        img.src = url;
-      }
-    });
-  };
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            if (!url) {
+                return reject(new Error('Invalid or missing image URL.'));
+            }
+
+            const img = new window.Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = (err) => reject(err);
+
+            if (url.startsWith('http')) {
+                const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+                img.src = proxiedUrl;
+            } else {
+                img.src = url;
+            }
+        });
+    };
 
   const handleExportToPDF = async () => {
     if (!cltRules || cltRules.length === 0) {
@@ -187,7 +184,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
 
   const generatePdfContent = (docPDF: jsPDFWithAutoTable, logoImage: HTMLImageElement | null) => {
-      const addHeader = () => {
+      const addHeader = (data: any) => {
         const pageWidth = docPDF.internal.pageSize.getWidth();
         let startY = 15;
 
@@ -215,7 +212,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
                 canvas.width = logoImage.naturalWidth;
                 canvas.height = logoImage.naturalHeight;
                 const ctx = canvas.getContext('2d');
-                ctx?.drawImage(logoImage, 0, 0);
+                if(!ctx) throw new Error("Canvas context not found");
+                ctx.drawImage(logoImage, 0, 0);
                 const dataUrl = canvas.toDataURL('image/png');
                 docPDF.addImage(dataUrl, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
                 startY += renderHeight + 5;
@@ -236,7 +234,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       };
 
       const addFooter = (data: any) => {
-          const pageCount = data.doc.internal.getNumberOfPages();
+          const pageCount = (docPDF.internal as any).getNumberOfPages ? (docPDF.internal as any).getNumberOfPages() : 1;
           docPDF.setPage(data.pageNumber);
           docPDF.setFontSize(10);
           docPDF.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, docPDF.internal.pageSize.getHeight() - 10);
@@ -248,7 +246,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] },
         didDrawPage: (data) => {
-            addHeader();
+            addHeader(data);
             addFooter(data);
         },
         margin: { top: 60 } // Increased margin to prevent overlap

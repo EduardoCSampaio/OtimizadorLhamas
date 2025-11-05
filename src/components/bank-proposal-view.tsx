@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, addDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
 
@@ -144,7 +144,7 @@ export default function BankProposalView() {
 
   // --- Event Handlers ---
   const handleAddBank = async () => {
-    if (newBankName.trim() === '' || !banksMasterCollectionRef || !firestore) {
+    if (newBankName.trim() === '' || !banksMasterCollectionRef || !firestore || !userChecklistCollectionRef) {
         toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
         return;
     }
@@ -156,16 +156,32 @@ export default function BankProposalView() {
         return;
     }
 
-    const newBank: Omit<BankMaster, 'id'> = {
+    const newBankData: Omit<BankMaster, 'id'> = {
       name: newBankName.trim(),
       category: 'Custom',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
-    addDocumentNonBlocking(banksMasterCollectionRef, newBank);
-    setNewBankName('');
-    toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado à lista mestre.` });
+    try {
+        const docRef = await addDoc(banksMasterCollectionRef, newBankData);
+        const userChecklistRef = doc(userChecklistCollectionRef, docRef.id);
+        const newChecklistItem: Omit<BankChecklistStatus, 'id'> = {
+            name: newBankData.name,
+            status: 'Pendente',
+            insertionDate: null,
+            updatedAt: serverTimestamp(),
+        };
+        // Use non-blocking set which also handles errors
+        setDocumentNonBlocking(userChecklistRef, newChecklistItem, {merge: false});
+
+        setNewBankName('');
+        toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
+
+    } catch (error) {
+        console.error("Error adding bank:", error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível adicionar o banco.' });
+    }
   };
 
   const handleToggleStatus = (bankId: string) => {

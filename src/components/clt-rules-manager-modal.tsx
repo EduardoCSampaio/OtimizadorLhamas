@@ -432,8 +432,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     setIsExporting(true);
     const docPDF = new jsPDF() as jsPDFWithAutoTable;
 
-    const isTwoSBank = bank.name.toLowerCase().includes('2s');
-    const logoUrl = isTwoSBank ? localLogoPath : bank.logoUrl;
+    const logoUrl = bank.logoUrl;
     
     let logoImage: HTMLImageElement | null = null;
     if (logoUrl) {
@@ -466,22 +465,12 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             
             let renderWidth, renderHeight;
 
-            if (aspectRatio > 1) { // Landscape
-                renderWidth = Math.min(maxBoxWidth, logoImage.naturalWidth);
-                renderHeight = renderWidth / aspectRatio;
-            } else { // Portrait or square
-                renderHeight = Math.min(maxBoxHeight, logoImage.naturalHeight);
-                renderWidth = renderHeight * aspectRatio;
-            }
-            
-            // Final check to fit in the box
-            if (renderHeight > maxBoxHeight) {
-                renderHeight = maxBoxHeight;
-                renderWidth = renderHeight * aspectRatio;
-            }
-            if (renderWidth > maxBoxWidth) {
+            if (aspectRatio > (maxBoxWidth / maxBoxHeight)) { 
                 renderWidth = maxBoxWidth;
                 renderHeight = renderWidth / aspectRatio;
+            } else { 
+                renderHeight = maxBoxHeight;
+                renderWidth = renderHeight * aspectRatio;
             }
             
             const x = (pageWidth - renderWidth) / 2;

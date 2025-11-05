@@ -15,7 +15,7 @@ export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' 
 export interface BankMaster {
   id: string;
   name: string;
-  logoUrl?: string;
+  logoUrl: string;
   category: BankCategory;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -24,8 +24,6 @@ export interface BankMaster {
 // Represents the user-specific checklist status for a bank
 export interface BankChecklistStatus {
   id: string; // This ID should correspond to the BankMaster ID
-  name: string; // Denormalized for easy display
-  logoUrl?: string; // Denormalized for easy display
   status: 'Pendente' | 'Concluído';
   insertionDate: Timestamp | null;
   updatedAt: Timestamp;

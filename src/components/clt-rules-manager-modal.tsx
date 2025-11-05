@@ -35,6 +35,9 @@ import { useToast } from '@/hooks/use-toast';
 import type { BankMaster, CLTRule } from '@/lib/types';
 import { useCollection, useFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 54b04f1 (Talvez se tivesse um jeito de saber quando vai cortar e quando for corta)
 import { collection, serverTimestamp, doc, orderBy, query } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
 import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown, BookUp } from 'lucide-react';
@@ -136,8 +139,12 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   const isMaster = userRole === 'master';
 
   const cltRulesCollectionRef = useMemoFirebase(
+<<<<<<< HEAD
     () => (firestore ? collection(firestore, 'bankStatuses', bank.id, 'cltRules') : null),
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+    () => (firestore ? query(collection(firestore, 'bankStatuses', bank.id, 'cltRules'), orderBy('ruleName')) : null),
+>>>>>>> 54b04f1 (Talvez se tivesse um jeito de saber quando vai cortar e quando for corta)
     [firestore, bank.id]
   );
   
@@ -231,10 +238,14 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   };
   
   const handleUpdateRule = () => {
-    if (!editingRule || !cltRulesCollectionRef) return;
+    if (!editingRule || !firestore) return;
 
+<<<<<<< HEAD
     const ruleDocRef = doc(cltRulesCollectionRef, editingRule.id);
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+    const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', editingRule.id);
+>>>>>>> 54b04f1 (Talvez se tivesse um jeito de saber quando vai cortar e quando for corta)
     updateDocumentNonBlocking(ruleDocRef, {
         ruleName: editingRule.ruleName,
         ruleValue: editingRule.ruleValue,
@@ -254,6 +265,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   }
 
   const handleDeleteRule = (ruleId: string) => {
+<<<<<<< HEAD
 <<<<<<< HEAD
     if (!firestore || !user) return;
     const ruleToDelete = cltRules?.find(r => r.id === ruleId);
@@ -400,6 +412,10 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 =======
     if (!cltRulesCollectionRef) return;
     const ruleDocRef = doc(cltRulesCollectionRef, ruleId);
+=======
+    if (!firestore) return;
+    const ruleDocRef = doc(firestore, 'bankStatuses', bank.id, 'cltRules', ruleId);
+>>>>>>> 54b04f1 (Talvez se tivesse um jeito de saber quando vai cortar e quando for corta)
     deleteDocumentNonBlocking(ruleDocRef);
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };

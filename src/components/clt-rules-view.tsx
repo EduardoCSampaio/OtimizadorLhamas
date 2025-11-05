@@ -414,7 +414,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   const loadImage = (url: string): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
         if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-          return reject(new Error('URL inválida ou ausente.'));
+          return reject(new Error('URL da imagem inválida ou ausente.'));
         }
           const img = new window.Image();
           img.crossOrigin = 'Anonymous';
@@ -436,7 +436,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
     
-    // Step 1: Fetch all rules and prepare data structure
     const banksAndRulesPromises = banks.map(async (bank) => {
         const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
         const rulesSnapshot = await getDocs(cltRulesCollectionRef);
@@ -450,35 +449,34 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
     const banksAndRules = await Promise.all(banksAndRulesPromises);
 
-    // Step 2: Load all images
-    const imageLoadingPromises = banksAndRules.map(bank => 
-        bank.logoUrl ? loadImage(bank.logoUrl)
-                      .then(img => ({ ...bank, logoImage: img }))
-                      .catch(e => {
-                          console.error(`Failed to load image for ${bank.bankName}:`, e);
-                          toast({
-                            variant: "destructive",
-                            title: `Erro ao carregar logo`,
-                            description: `Não foi possível carregar a logo para o banco ${bank.bankName}.`,
-                          });
-                          return { ...bank, logoImage: undefined }; // Continue without image
-                      }) 
-                    : Promise.resolve({ ...bank, logoImage: undefined })
-    );
-
+    const imageLoadingPromises = banksAndRules.map(bank => {
+        if (!bank.logoUrl) {
+            return Promise.resolve({ ...bank, logoImage: undefined });
+        }
+        return loadImage(bank.logoUrl)
+            .then(img => ({ ...bank, logoImage: img }))
+            .catch(e => {
+                console.error(`Failed to load image for ${bank.bankName}:`, e);
+                toast({
+                    variant: "destructive",
+                    title: `Erro ao carregar logo`,
+                    description: `Não foi possível carregar a logo para ${bank.bankName}.`,
+                });
+                return { ...bank, logoImage: undefined };
+            });
+    });
+    
     const allBanksData = await Promise.all(imageLoadingPromises);
 
     allBanksData.sort((a, b) => a.bankName.localeCompare(b.bankName));
 
-    // Step 3: Generate PDF with loaded data
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
 
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
-        const row : any[] = [{ 
-            content: bankData.logoImage ? '' : bankData.bankName, 
-            styles: { halign: 'center', valign: 'middle' } 
-        }];
+        const row : any[] = [
+            bankData.logoImage ? '' : bankData.bankName
+        ];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
@@ -488,7 +486,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     doc.autoTable({
         head: head,
         body: body,
-        startY: 50,
+        startY: 35,
         theme: 'grid',
         headStyles: { 
             fillColor: [22, 22, 22],
@@ -518,10 +516,10 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     let imgWidth, imgHeight;
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
 
-                    if (aspectRatio > 1) { // Wider than tall
+                    if (img.naturalWidth > img.naturalHeight) { // Landscape
                         imgWidth = maxImgWidth;
                         imgHeight = imgWidth / aspectRatio;
-                    } else { // Taller than wide or square
+                    } else { // Portrait or square
                         imgHeight = maxImgHeight;
                         imgWidth = imgHeight * aspectRatio;
                     }
@@ -543,10 +541,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                         doc.addImage(img, format, x, y, imgWidth, imgHeight, undefined, 'FAST');
                     } catch (e) {
                         console.error(`Failed to add image for ${bankData.bankName}:`, e);
-                        // If addImage fails, draw text as a fallback
                         const text = bankData.bankName;
-                        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
-                        doc.text(text, cell.x + (cell.width - textWidth) / 2, cell.y + cell.height / 2, { baseline: 'middle' });
+                        doc.text(text, cell.x + cell.width / 2, cell.y + cell.height / 2, { baseline: 'middle', align: 'center' });
                     }
                 }
             }
@@ -554,11 +550,11 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         didDrawPage: (data) => {
             doc.setFontSize(22);
             doc.setFont('helvetica', 'bold');
-            doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+            doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
             
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+            doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
 
             const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);

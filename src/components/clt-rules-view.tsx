@@ -450,7 +450,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
             });
-            doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 95, 8, 80, 40);
+            doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 95, 8, 80, 40, undefined, 'FAST');
         }
     } catch (error) {
          console.warn("Logo not found at /logo.png, skipping.");
@@ -485,21 +485,20 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             halign: 'center'
         },
         columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 40 }
+            0: { fontStyle: 'bold', cellWidth: 40, minCellHeight: 20 }
         },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
                 const bankData = allRulesData[data.row.index];
                  if (bankData && bankData.logo && bankData.logoUrl) {
                     const extension = bankData.logoUrl.split('.').pop()?.toUpperCase() || 'PNG';
-                    const imgHeight = 8;
-                    const imgWidth = 8;
-                    const x = data.cell.x + (data.cell.width - imgWidth) / 2;
-                    const y = data.cell.y + 2;
-                    doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight);
+                    
+                    // Add image with auto-sizing
+                    doc.addImage(bankData.logo as string, extension, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 12, undefined, 'FAST');
+                    
                     // Adjust text position
                     if (data.cell.textPos) {
-                      data.cell.textPos.y = y + imgHeight + 4;
+                      data.cell.textPos.y = data.cell.y + data.cell.height - 4;
                     }
                 }
             }

@@ -140,43 +140,68 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       return;
     }
 
-    const doc = new jsPDF() as jsPDFWithAutoTable;
-    generatePdfContent(doc);
+    const docPDF = new jsPDF() as jsPDFWithAutoTable;
+    generatePdfContent(docPDF);
   };
 
-  const generatePdfContent = (doc: jsPDFWithAutoTable) => {
-      let startY = 20;
+  const generatePdfContent = (docPDF: jsPDFWithAutoTable) => {
+      const addHeader = () => {
+        const pageWidth = docPDF.internal.pageSize.getWidth();
+        let startY = 20;
 
-      if (bank.logoUrl) {
-          try {
-            const containerSize = 30;
-            const x = (doc.internal.pageSize.getWidth() - containerSize) / 2;
-            doc.addImage(bank.logoUrl, '', x, 15, containerSize, containerSize, undefined, 'FAST');
-            startY = 20 + containerSize;
-          } catch(e) {
-            console.error("Failed to add logo to PDF, skipping.", e);
+        if (bank.logoUrl) {
+            try {
+                const img = new (window as any).Image();
+                img.crossOrigin = 'Anonymous';
+                img.src = bank.logoUrl;
+
+                const desiredWidth = 30; 
+                const desiredHeight = 30;
+                let imgWidth = img.naturalWidth;
+                let imgHeight = img.naturalHeight;
+
+                const ratio = Math.min(desiredWidth / imgWidth, desiredHeight / imgHeight);
+                imgWidth = imgWidth * ratio;
+                imgHeight = imgHeight * ratio;
+
+                const x = (pageWidth - imgWidth) / 2;
+                docPDF.addImage(bank.logoUrl, '', x, startY, imgWidth, imgHeight, undefined, 'FAST');
+                startY += imgHeight + 5;
+            } catch (e) {
+                console.error("Failed to add logo to PDF, skipping.", e);
+            }
+        }
+        
+        docPDF.setFontSize(20);
+        docPDF.text(`Regras CLT - ${bank.name}`, pageWidth / 2, startY, { align: 'center' });
+      };
+
+      const addFooter = () => {
+          const pageCount = (docPDF.internal as any).getNumberOfPages ? (docPDF.internal as any).getNumberOfPages() : 1;
+          for (let i = 1; i <= pageCount; i++) {
+              docPDF.setPage(i);
+              docPDF.setFontSize(10);
+              docPDF.text(`Página ${i} de ${pageCount}`, docPDF.internal.pageSize.getWidth() - 20, docPDF.internal.pageSize.getHeight() - 10, { align: 'right' });
           }
-      }
+      };
       
-      doc.setFontSize(20);
-      doc.text(`Regras CLT - ${bank.name}`, doc.internal.pageSize.getWidth() / 2, startY, { align: 'center' });
-
-      doc.autoTable({
-        startY: startY + 10,
+      docPDF.autoTable({
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] },
+        didDrawPage: (data) => {
+            // Header
+            addHeader();
+            // Reset startY for table on subsequent pages if header is tall
+            data.settings.startY = (data.pageNumber === 1) ? 65 : 20;
+        },
+        margin: { top: 65 } // Initial margin for the first page
       });
+
+      addFooter();
       
-      const pageCount = (doc.internal.pages.length > 1) ? (doc.internal as any).getNumberOfPages() : 1;
-      for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(10);
-        doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() - 20, doc.internal.pageSize.getHeight() - 10, { align: 'center'});
-      }
-      
-      doc.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
+      docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
   }
 
   const loadDefaultRules = () => {

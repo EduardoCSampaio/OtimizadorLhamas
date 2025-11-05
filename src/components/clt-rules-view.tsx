@@ -116,11 +116,11 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     // 2. Prepare Header
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+    doc.text('Crédito do Trabalhador', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+    doc.text('Confira as atualizações e oportunidades', doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
   
     // 3. Add Main Logo
     try {
@@ -135,12 +135,15 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 reader.readAsDataURL(blob);
             });
             const imgProps = doc.getImageProperties(base64data);
-            const imgWidth = 80;
-            const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+            const logoSize = 40; // Increased size for main logo
+            const aspectRatio = imgProps.width / imgProps.height;
+            const imgWidth = logoSize * aspectRatio;
+            const imgHeight = logoSize;
+
             doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - (imgWidth + 15), 8, imgWidth, imgHeight, undefined, 'FAST');
         }
     } catch (error) {
-         console.warn("Logo not found at /logo.png, skipping.", error);
+         console.warn("Main logo not found at /logo.png, skipping.", error);
     }
       
     // 4. Prepare table data
@@ -181,22 +184,24 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const extension = bankData.logoUrl.split('.').pop()?.toUpperCase() || 'PNG';
                     
                     const cellPadding = 2;
-                    const cellWidth = data.cell.width - (cellPadding * 2);
-                    const cellHeight = data.cell.height - (cellPadding * 2) - 8; // Reserve space for text
-                    const img = doc.getImageProperties(bankData.logo);
+                    const containerSize = 20; // Fixed container size for the logo
+                    const textHeight = 8; // Reserved space for text
                     
+                    const img = doc.getImageProperties(bankData.logo);
                     const aspectRatio = img.width / img.height;
-                    let imgWidth = cellWidth;
-                    let imgHeight = imgWidth / aspectRatio;
 
-                    if (imgHeight > cellHeight) {
-                        imgHeight = cellHeight;
-                        imgWidth = imgHeight * aspectRatio;
+                    let imgWidth, imgHeight;
+                    if (aspectRatio > 1) { // Wider image
+                        imgWidth = containerSize;
+                        imgHeight = containerSize / aspectRatio;
+                    } else { // Taller or square image
+                        imgHeight = containerSize;
+                        imgWidth = containerSize * aspectRatio;
                     }
 
                     const x = data.cell.x + (data.cell.width - imgWidth) / 2;
-                    const y = data.cell.y + ((cellHeight - imgHeight) / 2) + cellPadding;
-
+                    const y = data.cell.y + cellPadding; // Start near the top
+                    
                     doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight, undefined, 'FAST');
                     
                     // Adjust text position to be at the bottom

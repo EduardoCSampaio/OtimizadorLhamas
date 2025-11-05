@@ -146,24 +146,41 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
     try {
-      const proxiedLogoUrl = getProxiedUrl('/logo.png');
-      const response = await fetch(proxiedLogoUrl);
-      const blob = await response.blob();
-      const reader = new FileReader();
-      const base64data = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      const imgProps = doc.getImageProperties(base64data);
-      const pdfWidth = doc.internal.pageSize.getWidth();
-      const imgWidth = 80;
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-      const x = (pdfWidth - imgWidth) / 2;
-      doc.addImage(base64data, 'PNG', x, 10, imgWidth, imgHeight);
-      generatePdfContent(doc, 15 + imgHeight);
+      if (bank.logoUrl) {
+        const proxiedLogoUrl = getProxiedUrl(bank.logoUrl);
+        const response = await fetch(proxiedLogoUrl);
+        if (response.ok) {
+          const blob = await response.blob();
+          const reader = new FileReader();
+          const base64data = await new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const imgProps = doc.getImageProperties(base64data);
+          const pdfWidth = doc.internal.pageSize.getWidth();
+          
+          const logoSize = 30; // Standard size for the logo
+          const aspectRatio = imgProps.width / imgProps.height;
+          let imgWidth = logoSize;
+          let imgHeight = logoSize / aspectRatio;
+
+          if (imgHeight > logoSize) {
+            imgHeight = logoSize;
+            imgWidth = logoSize * aspectRatio;
+          }
+
+          const x = (pdfWidth - imgWidth) / 2;
+          doc.addImage(base64data, 'PNG', x, 15, imgWidth, imgHeight);
+          generatePdfContent(doc, 20 + imgHeight);
+        } else {
+           generatePdfContent(doc, 20);
+        }
+      } else {
+        generatePdfContent(doc, 20);
+      }
     } catch (error) {
-        console.warn("Logo not found at /logo.png, skipping. Add your logo to the public folder.", error);
+        console.warn("Could not fetch or add logo, skipping.", error);
         generatePdfContent(doc, 20);
     }
   };
@@ -216,15 +233,17 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
              {bank.logoUrl && <Image src={bank.logoUrl} alt={`${bank.name} logo`} width={40} height={40} className="h-10 w-10 object-contain rounded-md" />}
             <DialogTitle>Regras CLT para: {bank.name}</DialogTitle>
           </div>
-          <div className="flex justify-between items-center pt-2">
-            <div className="text-sm text-muted-foreground">
+          <DialogDescription>
+            <div className="flex justify-between items-center pt-2">
+              <span>
                 {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
+              </span>
+              <Button variant="outline" size="sm" onClick={handleExportToPDF}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleExportToPDF}>
-              <FileDown className="mr-2 h-4 w-4" />
-              Exportar PDF
-            </Button>
-          </div>
+          </DialogDescription>
         </DialogHeader>
         
         <div className='flex-grow overflow-y-auto pr-6'>

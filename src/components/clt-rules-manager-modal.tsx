@@ -88,6 +88,7 @@ const defaultRuleNames = [
 ];
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 const localLogoPath = '/logo.png';
 
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
@@ -101,6 +102,12 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
 =======
 =======
 >>>>>>> 2c6d054 (Situação	Idade	Margem e Segurança	Limites	Prazo	Empréstimos	Tempo Empres)
+=======
+// Helper to use Google's image proxy
+const getProxiedUrl = (url: string) => `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=${encodeURIComponent(url)}`;
+
+
+>>>>>>> b711987 (Try fixing this error: `Console Error: Error: Failed to fetch. Error sou)
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -381,7 +388,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
     try {
-      const response = await fetch('/logo.png');
+      const proxiedLogoUrl = getProxiedUrl('/logo.png');
+      const response = await fetch(proxiedLogoUrl);
       const blob = await response.blob();
       const reader = new FileReader();
       const base64data = await new Promise<string>((resolve, reject) => {
@@ -389,22 +397,27 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-      doc.addImage(base64data, 'PNG', 15, 10, 80, 40);
-      generatePdfContent(doc);
+      const imgProps = doc.getImageProperties(base64data);
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const imgWidth = 80;
+      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+      const x = (pdfWidth - imgWidth) / 2;
+      doc.addImage(base64data, 'PNG', x, 10, imgWidth, imgHeight);
+      generatePdfContent(doc, 15 + imgHeight);
     } catch (error) {
-        console.warn("Logo not found at /logo.png, skipping. Add your logo to the public folder.");
-        generatePdfContent(doc);
+        console.warn("Logo not found at /logo.png, skipping. Add your logo to the public folder.", error);
+        generatePdfContent(doc, 20);
     }
   };
 
-  const generatePdfContent = (doc: jsPDFWithAutoTable) => {
+  const generatePdfContent = (doc: jsPDFWithAutoTable, startY: number) => {
       // Title
       doc.setFontSize(20);
-      doc.text(`Regras CLT - ${bank.name}`, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+      doc.text(`Regras CLT - ${bank.name}`, doc.internal.pageSize.getWidth() / 2, startY, { align: 'center' });
 
       // Table
       doc.autoTable({
-        startY: 60,
+        startY: startY + 10,
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
@@ -412,7 +425,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
       });
 
       // Footer
-      const pageCount = doc.internal.pages.length; 
+      const pageCount = (doc.internal.pages.length > 1) ? (doc.internal as any).getNumberOfPages() : 1;
       for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(10);
@@ -485,9 +498,9 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
           </div>
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
           <div className="flex justify-between items-center pt-2">
-            <DialogDescription>
+            <div className="text-sm text-muted-foreground">
                 {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
-            </DialogDescription>
+            </div>
             <Button variant="outline" size="sm" onClick={handleExportToPDF}>
               <FileDown className="mr-2 h-4 w-4" />
               Exportar PDF

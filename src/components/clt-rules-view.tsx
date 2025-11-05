@@ -94,6 +94,7 @@ const ruleOrder = [
 ];
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 type BankDataForPDF = {
     bank: BankMaster;
     rules: Record<string, string>;
@@ -364,6 +365,12 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 =======
 =======
 >>>>>>> 5642f0d (No pdf, queria algo mais parecido com isso, acho que seria interessante.)
+=======
+// Helper to use Google's image proxy
+const getProxiedUrl = (url: string) => `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=${encodeURIComponent(url)}`;
+
+
+>>>>>>> b711987 (Try fixing this error: `Console Error: Error: Failed to fetch. Error sou)
 export default function CltRulesView({ userRole }: CltRulesViewProps) {
   const { firestore } = useFirebase();
   const { toast } = useToast();
@@ -413,7 +420,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         let logoBase64 = null;
         if (bank.logoUrl) {
             try {
-                const response = await fetch(bank.logoUrl);
+                const proxiedUrl = getProxiedUrl(bank.logoUrl);
+                const response = await fetch(proxiedUrl);
                  if (response.ok) {
                     const blob = await response.blob();
                     const reader = new FileReader();
@@ -441,7 +449,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     // 3. Add Main Logo
     try {
-        const response = await fetch('/logo.png');
+        const proxiedMainLogoUrl = getProxiedUrl('/logo.png');
+        const response = await fetch(proxiedMainLogoUrl);
         if (response.ok) {
             const blob = await response.blob();
             const base64data = await new Promise<string>((resolve, reject) => {
@@ -450,10 +459,13 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
             });
-            doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - 95, 8, 80, 40, undefined, 'FAST');
+            const imgProps = doc.getImageProperties(base64data);
+            const imgWidth = 80;
+            const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+            doc.addImage(base64data, 'PNG', doc.internal.pageSize.getWidth() - (imgWidth + 15), 8, imgWidth, imgHeight, undefined, 'FAST');
         }
     } catch (error) {
-         console.warn("Logo not found at /logo.png, skipping.");
+         console.warn("Logo not found at /logo.png, skipping.", error);
     }
       
     // 4. Prepare table data
@@ -508,7 +520,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     }
 
                     const x = data.cell.x + (data.cell.width - imgWidth) / 2;
-                    const y = data.cell.y + (cellHeight - imgHeight) / 2 + cellPadding;
+                    const y = data.cell.y + ((cellHeight - imgHeight) / 2) + cellPadding;
 
                     doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight, undefined, 'FAST');
                     
@@ -521,7 +533,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         },
         didDrawPage: (data) => {
             // Footer
-            const pageCount = (doc.internal as any).pages.length - 1;
+            const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);
             const text = `Página ${data.pageNumber} de ${pageCount}`;
             const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;

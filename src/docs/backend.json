@@ -49,6 +49,9 @@
           "description": "URL for the bank's logo."
         },
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
         "categories": {
           "type": "array",
           "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
@@ -62,6 +65,7 @@
               "Custom"
             ]
           }
+<<<<<<< HEAD
 =======
         "category": {
           "type": "string",
@@ -74,6 +78,8 @@
             "Custom"
           ]
 >>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
+=======
+>>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
         },
         "status": {
           "type": "string",
@@ -105,11 +111,15 @@
       "required": [
         "name",
 <<<<<<< HEAD
+<<<<<<< HEAD
         "categories",
 =======
         "category",
         "status",
 >>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
+=======
+        "categories",
+>>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
         "createdAt",
         "updatedAt"
       ]

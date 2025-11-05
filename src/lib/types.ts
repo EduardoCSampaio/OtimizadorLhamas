@@ -42,6 +42,7 @@ export interface BankMaster {
 <<<<<<< HEAD
   logoUrl: string;
   categories: BankCategory[];
+<<<<<<< HEAD
   promotoraId?: string; // Optional: ID of the associated Promotora
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -87,6 +88,8 @@ export interface BankMaster {
   name: string;
   category: BankCategory;
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
+=======
+>>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

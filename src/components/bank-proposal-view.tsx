@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import type { BankChecklistStatus, BankMaster } from '@/lib/types';
 <<<<<<< HEAD
 import { CheckCircle, History, Landmark, PlusCircle } from 'lucide-react';
@@ -99,6 +100,9 @@ import { collection, doc, serverTimestamp } from 'firebase/firestore';
 =======
 =======
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+=======
+import { Checkbox } from '@/components/ui/checkbox';
+>>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
 import type { BankChecklistStatus, BankMaster, BankCategory } from '@/lib/types';
 >>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
 import { CheckCircle, History, Landmark, PlusCircle, Edit } from 'lucide-react';
@@ -127,7 +131,7 @@ import { useMemoFirebase } from '@/firebase/provider';
 import EditBankModal from './edit-bank-modal';
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
-const categories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Custom'];
+const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Custom'];
 
 export default function BankProposalView() {
   const { toast } = useToast();
@@ -147,7 +151,7 @@ export default function BankProposalView() {
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
   const [newBankName, setNewBankName] = useState('');
   const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
-  const [newBankCategory, setNewBankCategory] = useState<BankCategory>('CLT');
+  const [newBankCategories, setNewBankCategories] = useState<BankCategory[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBank, setSelectedBank] = useState<BankMaster | null>(null);
 
@@ -276,9 +280,22 @@ export default function BankProposalView() {
 
 
   // --- Event Handlers ---
+
+  const handleNewCategoryChange = (category: BankCategory) => {
+    setNewBankCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
   const handleAddBank = async () => {
     if (newBankName.trim() === '') {
         toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
+        return;
+    }
+     if (newBankCategories.length === 0) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Selecione pelo menos uma categoria.' });
         return;
     }
     if (!firestore) return;
@@ -294,7 +311,7 @@ export default function BankProposalView() {
     const newBankData: Omit<BankMaster, 'id'> = {
       name: newBankName.trim(),
       logoUrl: newBankLogoUrl.trim(),
-      category: newBankCategory,
+      categories: newBankCategories,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -303,7 +320,7 @@ export default function BankProposalView() {
 
     setNewBankName('');
     setNewBankLogoUrl('');
-    setNewBankCategory('CLT');
+    setNewBankCategories([]);
     toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });
   };
 
@@ -565,7 +582,7 @@ export default function BankProposalView() {
   };
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
   
-  const handleUpdateBank = async (updatedData: { name: string; logoUrl: string, category: BankCategory }) => {
+  const handleUpdateBank = async (updatedData: { name: string; logoUrl: string, categories: BankCategory[] }) => {
     if (!firestore || !selectedBank) return;
   
     const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
@@ -574,7 +591,7 @@ export default function BankProposalView() {
       await updateDoc(bankMasterRef, {
         name: updatedData.name,
         logoUrl: updatedData.logoUrl,
-        category: updatedData.category,
+        categories: updatedData.categories,
         updatedAt: serverTimestamp()
       });
   
@@ -689,17 +706,30 @@ export default function BankProposalView() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
-                <div className="space-y-2">
-                  <Label htmlFor="bank-name">Nome do Banco</Label>
-                  <Input 
-                    id="bank-name"
-                    type="text" 
-                    placeholder="Ex: Banco do Brasil" 
-                    value={newBankName}
-                    onChange={(e) => setNewBankName(e.target.value)}
-                  />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bank-name">Nome do Banco</Label>
+                      <Input 
+                        id="bank-name"
+                        type="text" 
+                        placeholder="Ex: Banco do Brasil" 
+                        value={newBankName}
+                        onChange={(e) => setNewBankName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bank-logo">URL da Logo</Label>
+                      <Input 
+                        id="bank-logo"
+                        type="text" 
+                        placeholder="https://.../logo.png" 
+                        value={newBankLogoUrl}
+                        onChange={(e) => setNewBankLogoUrl(e.target.value)}
+                      />
+                    </div>
                 </div>
+<<<<<<< HEAD
                 <div className="space-y-2">
                   <Label htmlFor="bank-logo">URL da Logo</Label>
                   <Input 
@@ -725,10 +755,28 @@ export default function BankProposalView() {
                           ))}
                       </SelectContent>
                   </Select>
+=======
+                <div className="space-y-4">
+                   <div className="space-y-2">
+                     <Label>Categorias</Label>
+                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 p-2 border rounded-md">
+                        {allCategories.map(cat => (
+                            <div key={cat} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`new-cat-${cat}`}
+                                    checked={newBankCategories.includes(cat)}
+                                    onCheckedChange={() => handleNewCategoryChange(cat)}
+                                />
+                                <Label htmlFor={`new-cat-${cat}`} className="font-normal">{cat}</Label>
+                            </div>
+                        ))}
+                     </div>
+                   </div>
+>>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
                 </div>
 >>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
             </div>
-             <div className="mt-4">
+             <div className="mt-6">
                 <Button onClick={handleAddBank}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Adicionar Banco
@@ -764,12 +812,16 @@ export default function BankProposalView() {
                   <TableHead>Banco</TableHead>
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                   <TableHead>Outras Categorias</TableHead>
 =======
 >>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
 =======
                   <TableHead>Categoria</TableHead>
 >>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
+=======
+                  <TableHead>Categorias</TableHead>
+>>>>>>> b91eb37 (Mas calma, precisamos poder escolher várias categorias ao mesmo tempo sa)
                   <TableHead>Status e Data da Última Atualização</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
@@ -815,7 +867,11 @@ export default function BankProposalView() {
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getCategoryBadgeVariant(bank.category)}>{bank.category}</Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {bank.categories?.map(cat => (
+                          <Badge key={cat} variant={getCategoryBadgeVariant(cat)}>{cat}</Badge>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell>{renderStatus(bank)}</TableCell>
                     <TableCell>

@@ -75,9 +75,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     const loadImage = (url: string): Promise<HTMLImageElement> => {
         return new Promise((resolve, reject) => {
             if (!url) {
-                return reject(new Error('Invalid or missing image URL.'));
+                return reject(new Error('URL inválida ou ausente.'));
             }
-
             const img = new window.Image();
             img.crossOrigin = 'Anonymous';
             img.onload = () => resolve(img);
@@ -86,6 +85,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             if (url.startsWith('http')) {
                 const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
                 img.src = proxiedUrl;
+            } else if (url.startsWith('/')) {
+                img.src = `${window.location.origin}${url}`;
             } else {
                 img.src = url;
             }
@@ -103,8 +104,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     }
   
     setIsExporting(true);
-    
-    const allBanksDataPromises: Promise<BankDataForPDF>[] = banks.map(async (bank) => {
+
+    const allBanksDataPromises = banks.map(async (bank) => {
         const cltRulesCollectionRef = collection(firestore, 'bankStatuses', bank.id, 'cltRules');
         const rulesSnapshot = await getDocs(cltRulesCollectionRef);
         const rules: Record<string, string> = {};
@@ -113,7 +114,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             rules[rule.ruleName] = rule.ruleValue;
         });
 
-        let logoImage: HTMLImageElement | undefined = undefined;
+        let logoImage: HTMLImageElement | undefined;
         if (bank.logoUrl) {
             try {
                 logoImage = await loadImage(bank.logoUrl);
@@ -136,14 +137,14 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
-        const row : any[] = [
-            bankData.logoImage ? '' : bankData.bank.name,
-        ];
+        const row : (string | null)[] = [ bankData.logoImage ? null : bankData.bank.name ];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
         return row;
     });
+
+    const headerHeight = 30;
   
     doc.autoTable({
         head: head,
@@ -162,7 +163,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             halign: 'center'
         },
         columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 40, minCellHeight: 25 }
+            0: { fontStyle: 'bold', minCellWidth: 40, minCellHeight: 25 }
         },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
@@ -172,34 +173,32 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     const cell = data.cell;
                     const cellPadding = 2;
                     const maxImgWidth = cell.width - (2 * cellPadding);
-                    const maxImgHeight = 20;
+                    const maxImgHeight = cell.height - (2 * cellPadding);
 
+                    let imgWidth, imgHeight;
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
-                    let imgWidth = maxImgWidth;
-                    let imgHeight = imgWidth / aspectRatio;
+
+                    if (aspectRatio > 1) { // Landscape
+                        imgWidth = maxImgWidth;
+                        imgHeight = imgWidth / aspectRatio;
+                    } else { // Portrait or square
+                        imgHeight = maxImgHeight;
+                        imgWidth = imgHeight * aspectRatio;
+                    }
 
                     if (imgHeight > maxImgHeight) {
                         imgHeight = maxImgHeight;
                         imgWidth = imgHeight * aspectRatio;
                     }
+                    if (imgWidth > maxImgWidth) {
+                        imgWidth = maxImgWidth;
+                        imgHeight = imgWidth / aspectRatio;
+                    }
 
                     const x = cell.x + (cell.width - imgWidth) / 2;
                     const y = cell.y + (cell.height - imgHeight) / 2;
                     
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        const ctx = canvas.getContext('2d');
-                        if (!ctx) throw new Error("Canvas context could not be created");
-                        ctx.drawImage(img, 0, 0);
-                        const dataUrl = canvas.toDataURL('image/png');
-                        doc.addImage(dataUrl, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-                    } catch (e) {
-                        console.error(`Failed to add image for ${bankData.bank.name}:`, e);
-                        const text = bankData.bank.name;
-                        doc.text(text, cell.x + cell.width / 2, cell.y + cell.height / 2, { baseline: 'middle', align: 'center' });
-                    }
+                    doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
                 }
             }
         },
@@ -221,7 +220,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const textX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
             doc.text(text, textX, doc.internal.pageSize.getHeight() - 10);
         },
-        margin: { top: 30 }
+        margin: { top: headerHeight }
     });
   
     doc.save(`regras_clt_consolidado.pdf`);

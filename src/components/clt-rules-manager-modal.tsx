@@ -44,8 +44,11 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { createActivityLog } from '@/firebase/user-data';
 import { useUser } from '@/firebase/provider';
+=======
+>>>>>>> caa683f (Try fixing this error: `Build Error: Module not found: Can't resolve '..)
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -100,7 +103,12 @@ const defaultRuleNames = [
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 const localLogoPath = '/logo.png';
+=======
+const localLogoPath = '/logo.png';
+
+>>>>>>> caa683f (Try fixing this error: `Build Error: Module not found: Can't resolve '..)
 
 export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }: CltRulesManagerModalProps) {
   const { toast } = useToast();
@@ -395,25 +403,17 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
   
-    const loadImage = (url: string): Promise<HTMLImageElement> => {
+  const loadImage = (url: string): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
-          if (!url || typeof url !== 'string') {
-              return reject(new Error('URL inválida ou ausente.'));
-          }
-
-          const img = new window.Image();
+          const img = new Image();
           img.crossOrigin = 'Anonymous';
           img.onload = () => resolve(img);
           img.onerror = (err) => reject(err);
           
           if (url.startsWith('/')) {
-              // For local static imports, the 'src' property holds the path
-              img.src = url;
-          } else if (url.startsWith('http')) {
-              // Use proxy for external URLs to mitigate CORS issues
-              img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+              img.src = window.location.origin + url;
           } else {
-             reject(new Error('Formato de URL não suportado.'));
+              img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
           }
       });
   };
@@ -427,7 +427,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     setIsExporting(true);
     const docPDF = new jsPDF() as jsPDFWithAutoTable;
 
-    const logoUrl = bank.name === "2S" ? localLogo.src : bank.logoUrl;
+    const logoUrl = bank.name === "2S" ? localLogoPath : bank.logoUrl;
     
     let logoImage: HTMLImageElement | null = null;
     if (logoUrl) {

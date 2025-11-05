@@ -3,12 +3,16 @@
 import { useState, useEffect } from 'react';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import NextImage from 'next/image';
 =======
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
 =======
 import Image from 'next/image';
 >>>>>>> 843f2ba (Será que é possível fazer uma parte aonde terá as logos dos bancos? Ai c)
+=======
+import NextImage from 'next/image';
+>>>>>>> 84ab874 (Try fixing this error: `Console Error: Error: {imported module [project])
 import {
   Dialog,
   DialogContent,
@@ -385,6 +389,16 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
 
+  const loadImage = (url: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(err);
+        img.src = url;
+    });
+  };
+
   const handleExportToPDF = async () => {
     if (!cltRules || cltRules.length === 0) {
       toast({ variant: 'destructive', title: 'Nenhuma regra para exportar', description: 'Não há regras cadastradas para este banco.' });
@@ -393,29 +407,19 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     
     setIsExporting(true);
     const docPDF = new jsPDF() as jsPDFWithAutoTable;
-
-    const loadImage = (url: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'Anonymous';
-          img.onload = () => resolve(img);
-          img.onerror = (err) => reject(err);
-          img.src = url;
-        });
-    };
-
+    
     let logoImage: HTMLImageElement | null = null;
     if (bank.logoUrl) {
-        try {
-            logoImage = await loadImage(bank.logoUrl);
-        } catch (e) {
-            console.error("Failed to load logo for PDF, skipping.", e);
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao carregar logo',
-                description: 'Não foi possível carregar a imagem da logo para o PDF.'
-            });
-        }
+      try {
+        logoImage = await loadImage(bank.logoUrl);
+      } catch (e) {
+        console.error("Failed to load logo for PDF, skipping.", e);
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao carregar logo',
+          description: 'Não foi possível carregar a imagem da logo para o PDF.'
+        });
+      }
     }
     
     generatePdfContent(docPDF, logoImage);
@@ -425,36 +429,37 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   const generatePdfContent = (docPDF: jsPDFWithAutoTable, logoImage: HTMLImageElement | null) => {
       const addHeader = (data: any) => {
         const pageWidth = docPDF.internal.pageSize.getWidth();
-        let startY = 20;
+        let startY = 15;
 
         if (logoImage) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                const maxBoxWidth = 50;
-                const maxBoxHeight = 30; 
-                const aspectRatio = logoImage.naturalWidth / logoImage.naturalHeight;
-                
-                let renderWidth = logoImage.naturalWidth;
-                let renderHeight = logoImage.naturalHeight;
-                
-                if (renderWidth > maxBoxWidth) {
-                    renderWidth = maxBoxWidth;
-                    renderHeight = renderWidth / aspectRatio;
-                }
-                
-                if (renderHeight > maxBoxHeight) {
-                    renderHeight = maxBoxHeight;
-                    renderWidth = renderHeight * aspectRatio;
-                }
-                
-                canvas.width = logoImage.naturalWidth;
-                canvas.height = logoImage.naturalHeight;
-                ctx.drawImage(logoImage, 0, 0);
+            const maxBoxWidth = 50;
+            const maxBoxHeight = 25; 
+            const aspectRatio = logoImage.naturalWidth / logoImage.naturalHeight;
+            
+            let renderWidth = maxBoxWidth;
+            let renderHeight = maxBoxWidth / aspectRatio;
+            
+            if (renderHeight > maxBoxHeight) {
+                renderHeight = maxBoxHeight;
+                renderWidth = maxBoxHeight * aspectRatio;
+            }
+            
+            const x = (pageWidth - renderWidth) / 2;
 
-                const x = (pageWidth - renderWidth) / 2;
-                docPDF.addImage(canvas.toDataURL('image/png'), 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
-                startY += renderHeight + 5;
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = logoImage.naturalWidth;
+              canvas.height = logoImage.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                  ctx.drawImage(logoImage, 0, 0);
+                  docPDF.addImage(canvas.toDataURL('image/png'), 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
+              } else {
+                  docPDF.addImage(logoImage, 'PNG', x, startY, renderWidth, renderHeight, undefined, 'FAST');
+              }
+              startY += renderHeight + 5;
+            } catch (e) {
+                console.error("Error adding image to PDF:", e);
             }
         }
         
@@ -478,7 +483,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
             addHeader(data);
             addFooter(data);
         },
-        margin: { top: 65 } // Initial margin for the first page
+        margin: { top: 55 }
       });
       
       docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);

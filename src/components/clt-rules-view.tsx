@@ -417,7 +417,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             rulesMap[rule.ruleName] = rule.ruleValue;
         });
 
-        let logoBase64 = null;
+        let logoDataUrl = null;
         if (bank.logoUrl) {
             try {
                 const proxiedUrl = getProxiedUrl(bank.logoUrl);
@@ -425,8 +425,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                  if (response.ok) {
                     const blob = await response.blob();
                     const reader = new FileReader();
-                    logoBase64 = await new Promise((resolve, reject) => {
-                        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                    logoDataUrl = await new Promise((resolve, reject) => {
+                        reader.onloadend = () => resolve(reader.result as string);
                         reader.onerror = reject;
                         reader.readAsDataURL(blob);
                     });
@@ -435,7 +435,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 console.error(`Failed to fetch logo for ${bank.name}:`, e);
             }
         }
-        allRulesData.push({ bankName: bank.name, rules: rulesMap, logo: logoBase64, logoUrl: bank.logoUrl });
+        allRulesData.push({ bankName: bank.name, rules: rulesMap, logo: logoDataUrl, logoUrl: bank.logoUrl });
     }
   
     // 2. Prepare Header
@@ -505,15 +505,14 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.row.section === 'body') {
                 const bankData = allRulesData[data.row.index];
-                 if (bankData && bankData.logo && bankData.logoUrl) {
-                    const extension = bankData.logoUrl.split('.').pop()?.toUpperCase() || 'PNG';
+                 if (bankData && bankData.logo) {
+                    const extension = bankData.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
                     
                     const cellPadding = 2;
                     const containerSize = 20; // Fixed container size for the logo
-                    const textHeight = 8; // Reserved space for text
                     
-                    const img = doc.getImageProperties(bankData.logo);
-                    const aspectRatio = img.width / img.height;
+                    const imgProps = doc.getImageProperties(bankData.logo);
+                    const aspectRatio = imgProps.width / imgProps.height;
 
                     let imgWidth, imgHeight;
                     if (aspectRatio > 1) { // Wider image

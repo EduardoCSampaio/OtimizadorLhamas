@@ -1,5 +1,3 @@
-
-
 'use client';
 
 <<<<<<< HEAD
@@ -448,7 +446,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     setIsExporting(true);
 
     const dataForPdf: BankDataForPDF[] = await Promise.all(
-        banks.map(async (bank) => {
+        // Create a deep copy of banks to avoid mutation issues
+        JSON.parse(JSON.stringify(banks)).map(async (bank: BankMaster) => {
             let logoImage: HTMLImageElement | undefined = undefined;
             if (bank.logoUrl) {
                 try {
@@ -470,7 +469,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 rules[rule.ruleName] = rule.ruleValue;
             });
             
-            return { bank: { ...bank }, rules, logoImage };
+            return { bank, rules, logoImage };
         })
     );
      
@@ -563,7 +562,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             const pageMargin = 14;
             const pageWidth = doc.internal.pageSize.getWidth();
 
-            // Draw Titles on the Left
             doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
             doc.text('Crédito do Trabalhador', pageMargin, 18);
@@ -572,9 +570,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             doc.setFont('helvetica', 'normal');
             doc.text('Confira as atualizações e oportunidades', pageMargin, 23);
 
-            // Draw Company Logo on the Right
             if (companyLogoImage) {
-                const logoHeight = 25;
+                const logoHeight = 25; 
                 const aspectRatio = companyLogoImage.naturalWidth / companyLogoImage.naturalHeight;
                 const logoWidth = logoHeight * aspectRatio;
                 const logoX = pageWidth - logoWidth - pageMargin;
@@ -582,7 +579,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 doc.addImage(companyLogoImage, 'PNG', logoX, logoY, logoWidth, logoHeight);
             }
 
-            // Draw Page Number
             const pageCount = (doc.internal as any).pages.length > 1 ? (doc.internal as any).getNumberOfPages() : 1;
             doc.setFontSize(10);
             const text = `Página ${data.pageNumber} de ${pageCount}`;

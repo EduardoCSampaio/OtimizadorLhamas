@@ -111,7 +111,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         const logoUrl = isTwoSBank ? localLogoPath : bank.logoUrl;
 
         if (!logoUrl) {
-            return Promise.resolve({ bank, rules: {}, logoImage: undefined });
+            return Promise.resolve({ bank, logoImage: undefined });
         }
         return loadImage(logoUrl)
             .then(logoImage => ({ bank, logoImage }))
@@ -153,7 +153,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
 
     const head = [['Bancos', ...ruleOrder]];
     const body = allBanksData.map(bankData => {
-        const row : (string | null)[] = [ bankData.logoImage ? '' : bankData.bank.name ];
+        const row : (string | null)[] = [ bankData.logoImage ? null : bankData.bank.name ];
         ruleOrder.forEach(ruleName => {
             row.push(bankData.rules[ruleName] || 'Não avaliado');
         });
@@ -177,7 +177,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             cellPadding: 2,
             valign: 'middle',
             halign: 'center',
-            textColor: [0, 0, 0], // Black text for body cells
+            textColor: [0, 0, 0],
         },
         columnStyles: {
             0: { fontStyle: 'bold', minCellWidth: 40, halign: 'left' }
@@ -214,12 +214,13 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     
                     doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
                 } else {
-                    // Manually center the bank name text if there's no image
-                    const text = bankData.bank.name;
-                    const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
-                    const textX = data.cell.x + (data.cell.width - textWidth) / 2;
-                    const textY = data.cell.y + data.cell.height / 2;
-                    doc.text(text, textX, textY, {baseline: 'middle'});
+                    if (bankData?.bank) {
+                        const text = bankData.bank.name;
+                        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
+                        const textX = data.cell.x + (data.cell.width - textWidth) / 2;
+                        const textY = data.cell.y + data.cell.height / 2;
+                        doc.text(text, textX, textY, {baseline: 'middle'});
+                    }
                 }
             }
         },

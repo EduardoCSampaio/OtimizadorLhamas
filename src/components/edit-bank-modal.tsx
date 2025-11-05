@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { BankMaster, BankCategory } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,25 +20,33 @@ interface EditBankModalProps {
   isOpen: boolean;
   onClose: () => void;
   bank: BankMaster;
-  onSave: (updatedData: { name: string, logoUrl: string, category: BankCategory }) => Promise<void>;
+  onSave: (updatedData: { name: string, logoUrl: string, categories: BankCategory[] }) => Promise<void>;
 }
 
-const categories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Custom'];
+const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Custom'];
 
 export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBankModalProps) {
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [category, setCategory] = useState<BankCategory>('Custom');
+  const [categories, setCategories] = useState<BankCategory[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (bank) {
       setName(bank.name);
       setLogoUrl(bank.logoUrl || '');
-      setCategory(bank.category || 'Custom');
+      setCategories(bank.categories || []);
     }
   }, [bank]);
+
+  const handleCategoryChange = (category: BankCategory) => {
+    setCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
 
   const handleSave = async () => {
     if (name.trim() === '') {
@@ -49,9 +57,17 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
       });
       return;
     }
+    if (categories.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Selecione pelo menos uma categoria.',
+      });
+      return;
+    }
 
     setIsSaving(true);
-    await onSave({ name, logoUrl, category });
+    await onSave({ name, logoUrl, categories });
     setIsSaving(false);
   };
 
@@ -61,10 +77,10 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
         <DialogHeader>
           <DialogTitle>Editar Banco: {bank.name}</DialogTitle>
           <DialogDescription>
-            Atualize o nome, a URL da logo e a categoria do banco.
+            Atualize o nome, a URL da logo e as categorias do banco.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-6 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="edit-bank-name" className="text-right">
               Nome
@@ -87,20 +103,22 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
               className="col-span-3"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="edit-bank-category" className="text-right">
-              Categoria
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-2">
+              Categorias
             </Label>
-             <Select value={category} onValueChange={(value: BankCategory) => setCategory(value)}>
-                <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                    {categories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                {allCategories.map(cat => (
+                    <div key={cat} className="flex items-center space-x-2">
+                        <Checkbox
+                            id={`edit-cat-${cat}`}
+                            checked={categories.includes(cat)}
+                            onCheckedChange={() => handleCategoryChange(cat)}
+                        />
+                        <Label htmlFor={`edit-cat-${cat}`} className="font-normal">{cat}</Label>
+                    </div>
+                ))}
+            </div>
           </div>
         </div>
         <DialogFooter>

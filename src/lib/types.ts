@@ -16,7 +16,7 @@ export interface BankMaster {
   id: string;
   name: string;
   logoUrl: string;
-  category: BankCategory;
+  categories: BankCategory[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

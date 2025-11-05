@@ -80,25 +80,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
     const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
-    
-    // Load background image
-    const backgroundImageUrl = 'https://images.unsplash.com/photo-1598387993441-2b724565b493?q=80&w=2070';
-    let backgroundImageData: string | null = null;
-    try {
-        const proxiedBgUrl = getProxiedUrl(backgroundImageUrl);
-        const bgResponse = await fetch(proxiedBgUrl);
-        if (bgResponse.ok) {
-            const blob = await bgResponse.blob();
-            backgroundImageData = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        }
-    } catch(e) {
-        console.warn("Could not load PDF background image.", e);
-    }
   
     // 1. Fetch all rules and image data
     const allRulesData = [];
@@ -216,16 +197,12 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                     doc.addImage(bankData.logo as string, extension, x, y, imgWidth, imgHeight, undefined, 'FAST');
                     
                     if (data.cell.textPos) {
-                      data.cell.textPos.y = data.cell.y + data.cell.height - cellPadding;
+                      data.cell.textPos.y = y + imgHeight + 4;
                     }
                 }
             }
         },
         didDrawPage: (data) => {
-            if (backgroundImageData) {
-                const { width, height } = doc.internal.pageSize;
-                doc.addImage(backgroundImageData, 'JPEG', 0, 0, width, height, undefined, 'FAST');
-            }
              // Header
             doc.setFontSize(22);
             doc.setFont('helvetica', 'bold');

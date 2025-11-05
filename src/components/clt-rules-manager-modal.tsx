@@ -144,26 +144,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     }
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
-    
-    // Load background image
-    const backgroundImageUrl = 'https://images.unsplash.com/photo-1598387993441-2b724565b493?q=80&w=2070';
-    let backgroundImageData: string | null = null;
-    try {
-        const proxiedBgUrl = getProxiedUrl(backgroundImageUrl);
-        const bgResponse = await fetch(proxiedBgUrl);
-        if (bgResponse.ok) {
-            const blob = await bgResponse.blob();
-            backgroundImageData = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        }
-    } catch(e) {
-        console.warn("Could not load PDF background image.", e);
-    }
-    
+
     try {
       let logoDataUrl : string | null = null;
       if (bank.logoUrl) {
@@ -179,23 +160,15 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
           });
         }
       }
-      generatePdfContent(doc, { logo: logoDataUrl, background: backgroundImageData });
+      generatePdfContent(doc, { logo: logoDataUrl });
 
     } catch (error) {
         console.warn("Could not fetch or add logo, skipping.", error);
-        generatePdfContent(doc, { background: backgroundImageData });
+        generatePdfContent(doc, {});
     }
   };
 
-  const generatePdfContent = (doc: jsPDFWithAutoTable, images: { logo?: string | null, background?: string | null }) => {
-      const pageCount = (doc.internal.pages.length > 1) ? (doc.internal as any).getNumberOfPages() : 1;
-      for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        if (images.background) {
-            const { width, height } = doc.internal.pageSize;
-            doc.addImage(images.background, 'JPEG', 0, 0, width, height, undefined, 'FAST');
-        }
-      }
+  const generatePdfContent = (doc: jsPDFWithAutoTable, images: { logo?: string | null }) => {
       
       let startY = 20;
 
@@ -232,14 +205,9 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] }, // Blue color for header
-        didDrawPage: (data) => {
-            if(images.background){
-                const { width, height } = doc.internal.pageSize;
-                doc.addImage(images.background, 'JPEG', 0, 0, width, height, undefined, 'FAST');
-            }
-        }
       });
       
+      const pageCount = (doc.internal.pages.length > 1) ? (doc.internal as any).getNumberOfPages() : 1;
       // Re-run footer logic to be on top
       for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);

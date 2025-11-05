@@ -49,12 +49,16 @@ export default function PriorityTasks() {
     const checklistMap = new Map(userChecklist.map((item) => [item.id, item]));
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 15099d9 (Bancos que não estão na categoria inserção, não precisa aparecer em prio)
     // Filter for banks that are in the "Inserção" category first.
     const insertionBanks = masterBanks.filter(
         (bank) => Array.isArray(bank.categories) && bank.categories.includes('Inserção')
     );
 
     const tasks = insertionBanks
+<<<<<<< HEAD
       .map((bank) => {
         const checklistStatus = checklistMap.get(bank.id);
         // If a bank is for insertion but not in the user's checklist yet, it won't be processed.
@@ -66,6 +70,14 @@ export default function PriorityTasks() {
       .map((bank) => {
         const checklistStatus = checklistMap.get(bank.id);
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+      .map((bank) => {
+        const checklistStatus = checklistMap.get(bank.id);
+        // If a bank is for insertion but not in the user's checklist yet, it won't be processed.
+        // This is fine, as another useEffect in bank-proposal-view creates it.
+        if (!checklistStatus) return null;
+        
+>>>>>>> 15099d9 (Bancos que não estão na categoria inserção, não precisa aparecer em prio)
         const status = checklistStatus?.status || 'Pendente';
         const insertionDate = checklistStatus?.insertionDate || null;
         
@@ -97,10 +109,14 @@ export default function PriorityTasks() {
     insertionDate: any
   ): 'Alta' | 'Média' | 'Baixa' => {
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (!insertionDate || status === 'Pendente') {
 =======
     if (!insertionDate) {
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+    if (!insertionDate || status === 'Pendente') {
+>>>>>>> 15099d9 (Bancos que não estão na categoria inserção, não precisa aparecer em prio)
       return 'Média'; // Pending tasks are medium priority
     }
     const date = insertionDate.toDate ? insertionDate.toDate() : new Date();
@@ -113,11 +129,17 @@ export default function PriorityTasks() {
   
   const getTaskTitle = (status: 'Pendente' | 'Concluído', bankName: string, insertionDate: any) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
       if (status === 'Pendente') {
         return `Inserção pendente: ${bankName}`;
       }
 =======
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+      if (status === 'Pendente') {
+        return `Inserção pendente: ${bankName}`;
+      }
+>>>>>>> 15099d9 (Bancos que não estão na categoria inserção, não precisa aparecer em prio)
       const date = insertionDate?.toDate ? insertionDate.toDate() : new Date();
       const daysSinceUpdate = differenceInDays(new Date(), date);
       
@@ -125,10 +147,14 @@ export default function PriorityTasks() {
           return `Verificar inserção: ${bankName}`;
       }
 <<<<<<< HEAD
+<<<<<<< HEAD
       return `Inserção concluída: ${bankName}`;
 =======
       return `Inserção pendente: ${bankName}`;
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+      return `Inserção concluída: ${bankName}`;
+>>>>>>> 15099d9 (Bancos que não estão na categoria inserção, não precisa aparecer em prio)
   }
 
   const getTaskDescription = (status: 'Pendente' | 'Concluído', insertionDate: any) => {
@@ -163,10 +189,14 @@ export default function PriorityTasks() {
         <CardTitle>Prioridades</CardTitle>
         <CardDescription>
 <<<<<<< HEAD
+<<<<<<< HEAD
           Tarefas de inserção que requerem sua atenção.
 =======
           Tarefas que requerem sua atenção imediata.
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+          Tarefas de inserção que requerem sua atenção.
+>>>>>>> 15099d9 (Bancos que não estão na categoria inserção, não precisa aparecer em prio)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -199,12 +229,16 @@ export default function PriorityTasks() {
                                 task.priority === 'Alta'
                                     ? 'bg-red-500'
 <<<<<<< HEAD
+<<<<<<< HEAD
                                     : 'bg-yellow-500'
 =======
                                     : task.priority === 'Média'
                                     ? 'bg-yellow-500'
                                     : 'bg-green-500'
 >>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
+=======
+                                    : 'bg-yellow-500'
+>>>>>>> 15099d9 (Bancos que não estão na categoria inserção, não precisa aparecer em prio)
                                 }`}
                             />
                             <div className="grid gap-0.5">

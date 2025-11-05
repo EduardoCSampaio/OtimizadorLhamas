@@ -321,9 +321,19 @@
           "type": "string",
           "description": "URL for the bank's logo."
         },
-        "category": {
-          "type": "string",
-          "description": "Category of the bank."
+        "categories": {
+          "type": "array",
+          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Sem Info).",
+          "items": {
+            "type": "string",
+            "enum": [
+              "CLT",
+              "FGTS",
+              "GOV",
+              "INSS",
+              "Sem Info"
+            ]
+          }
         },
         "status": {
           "type": "string",
@@ -366,8 +376,7 @@
 =======
       "required": [
         "name",
-        "category",
-        "status",
+        "categories",
         "createdAt",
         "updatedAt"
       ]

@@ -131,7 +131,7 @@ import { useMemoFirebase } from '@/firebase/provider';
 import EditBankModal from './edit-bank-modal';
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
-const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Custom'];
+const allCategories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
 
 export default function BankProposalView() {
   const { toast } = useToast();

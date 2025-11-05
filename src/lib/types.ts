@@ -17,6 +17,7 @@ export interface Proposal {
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info' | 'Inserção';
 =======
 export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6' | 'Custom';
@@ -33,6 +34,9 @@ export interface Promotora {
 =======
 export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Custom';
 >>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
+=======
+export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info';
+>>>>>>> d1685e6 (Nessa categoria CUSTOM, muda para "Sem Info")
 
 // Represents a master bank entry
 export interface BankMaster {

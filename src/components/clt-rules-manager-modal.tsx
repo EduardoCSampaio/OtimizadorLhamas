@@ -152,26 +152,28 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         if (response.ok) {
           const blob = await response.blob();
           const reader = new FileReader();
-          const base64data = await new Promise<string>((resolve, reject) => {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
             reader.onloadend = () => resolve(reader.result as string);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          const imgProps = doc.getImageProperties(base64data);
-          const pdfWidth = doc.internal.pageSize.getWidth();
           
-          const logoSize = 30; // Standard size for the logo
+          const imgProps = doc.getImageProperties(dataUrl);
+          const pdfWidth = doc.internal.pageSize.getWidth();
+          const format = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+          
+          const containerSize = 30; // Standard size for the logo container
           const aspectRatio = imgProps.width / imgProps.height;
-          let imgWidth = logoSize;
-          let imgHeight = logoSize / aspectRatio;
+          let imgWidth = containerSize;
+          let imgHeight = containerSize / aspectRatio;
 
-          if (imgHeight > logoSize) {
-            imgHeight = logoSize;
-            imgWidth = logoSize * aspectRatio;
+          if (imgHeight > containerSize) {
+            imgHeight = containerSize;
+            imgWidth = containerSize * aspectRatio;
           }
 
           const x = (pdfWidth - imgWidth) / 2;
-          doc.addImage(base64data, 'PNG', x, 15, imgWidth, imgHeight);
+          doc.addImage(dataUrl, format, x, 15, imgWidth, imgHeight, undefined, 'FAST');
           generatePdfContent(doc, 20 + imgHeight);
         } else {
            generatePdfContent(doc, 20);

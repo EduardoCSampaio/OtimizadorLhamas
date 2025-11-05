@@ -456,6 +456,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         return loadImage(logoUrl)
             .then(logoImage => ({ bank, logoImage }))
             .catch(e => {
+                console.error(`Could not load image for ${bank.name}:`, e);
                 toast({
                     variant: "destructive",
                     title: `Erro ao carregar logo`,

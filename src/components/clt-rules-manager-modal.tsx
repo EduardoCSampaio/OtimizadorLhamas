@@ -24,7 +24,14 @@ import type { BankMaster, CLTRule } from '@/lib/types';
 import { useCollection, useFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
-import { PlusCircle, Trash2, Edit, Save, XCircle } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Save, XCircle, FileDown } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import type { UserOptions } from 'jspdf-autotable';
+
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: UserOptions) => jsPDF;
+}
 
 interface CltRulesManagerModalProps {
   bank: BankMaster;
@@ -112,6 +119,61 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
     deleteDocumentNonBlocking(ruleDocRef);
     toast({ title: 'Regra Removida!', description: 'A regra foi removida com sucesso.' });
   };
+
+  const handleExportToPDF = async () => {
+    if (!cltRules || cltRules.length === 0) {
+      toast({ variant: 'destructive', title: 'Nenhuma regra para exportar', description: 'Não há regras cadastradas para este banco.' });
+      return;
+    }
+
+    const doc = new jsPDF() as jsPDFWithAutoTable;
+    
+    // Logo placeholder - assuming logo is in public/logo.png
+    try {
+      const response = await fetch('/logo.png');
+      if (response.ok) {
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          doc.addImage(base64data, 'PNG', 15, 10, 30, 15);
+          generatePdfContent(doc);
+        };
+      } else {
+        generatePdfContent(doc);
+      }
+    } catch (error) {
+        console.warn("Logo not found at /logo.png, skipping. Add your logo to the public folder.");
+        generatePdfContent(doc);
+    }
+  };
+
+  const generatePdfContent = (doc: jsPDFWithAutoTable) => {
+      // Title
+      doc.setFontSize(20);
+      doc.text(`Regras CLT - ${bank.name}`, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+
+      // Table
+      doc.autoTable({
+        startY: 40,
+        head: [['Regra', 'Valor']],
+        body: cltRules.map(rule => [rule.ruleName, rule.ruleValue]),
+        theme: 'striped',
+        headStyles: { fillColor: [41, 128, 185] }, // Blue color for header
+      });
+
+      // Footer
+      const pageCount = doc.internal.pages.length - 1; // jsPDF-autotable adds pages, so get the count
+      for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.getWidth() - 20, doc.internal.pageSize.getHeight() - 10, { align: 'center'});
+      }
+
+      // Save
+      doc.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
+  }
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -119,7 +181,15 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         <DialogHeader>
           <DialogTitle>Regras CLT para: {bank.name}</DialogTitle>
           <DialogDescription>
-            {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
+            <div className="flex justify-between items-center">
+              <span>
+                {isMaster ? 'Adicione, edite ou visualize as regras de negócio para este banco.' : 'Visualize as regras de negócio para este banco.'}
+              </span>
+              <Button variant="outline" size="sm" onClick={handleExportToPDF}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </Button>
+            </div>
           </DialogDescription>
         </DialogHeader>
         

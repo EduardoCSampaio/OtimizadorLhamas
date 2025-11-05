@@ -36,6 +36,7 @@ import { useCollection, useFirebase, useUser } from '@/firebase';
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch, query, orderBy, where } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
@@ -94,6 +95,9 @@ import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where } f
 =======
 import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, addDoc } from 'firebase/firestore';
 >>>>>>> deacb7a (Os bancos não estão ficando salvos, poderia corrigir para mim?)
+=======
+import { collection, doc, serverTimestamp, writeBatch, getDocs, query, where, addDoc, orderBy } from 'firebase/firestore';
+>>>>>>> 73e0d8b (E poderia também manter os bancos em ordem alfabetica sempre?)
 import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
 import { useMemoFirebase } from '@/firebase/provider';
@@ -118,9 +122,9 @@ export default function BankProposalView() {
 >>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
   const [newBankName, setNewBankName] = useState('');
 
-  // Master list of all banks
+  // Master list of all banks, ordered by name
   const banksMasterCollectionRef = useMemoFirebase(
-      () => (firestore ? collection(firestore, 'bankStatuses') : null),
+      () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
       [firestore]
   );
   const { data: masterBanks, isLoading: isLoadingMasterBanks } = useCollection<BankMaster>(banksMasterCollectionRef);
@@ -185,6 +189,7 @@ export default function BankProposalView() {
           };
       });
 
+      // Although masterBanks is sorted, we re-sort here to be safe
       combined.sort((a, b) => a.name.localeCompare(b.name));
       setCombinedBankData(combined);
 
@@ -231,12 +236,13 @@ export default function BankProposalView() {
 
   // --- Event Handlers ---
   const handleAddBank = async () => {
-    if (newBankName.trim() === '' || !banksMasterCollectionRef || !firestore || !userChecklistCollectionRef) {
+    const masterBankCollection = collection(firestore, 'bankStatuses');
+    if (newBankName.trim() === '' || !masterBankCollection || !firestore || !userChecklistCollectionRef) {
         toast({ variant: 'destructive', title: 'Erro', description: 'O nome do banco não pode estar vazio.' });
         return;
     }
      // Check if bank already exists
-    const q = query(banksMasterCollectionRef, where("name", "==", newBankName.trim()));
+    const q = query(masterBankCollection, where("name", "==", newBankName.trim()));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
         toast({ variant: 'destructive', title: 'Erro', description: 'Este banco já existe.' });
@@ -251,7 +257,7 @@ export default function BankProposalView() {
     };
 
     // Use blocking addDoc here to get the ID for the next step
-    addDocumentNonBlocking(banksMasterCollectionRef, newBankData);
+    addDocumentNonBlocking(masterBankCollection, newBankData);
 
     setNewBankName('');
     toast({ title: 'Banco Adicionado!', description: `O banco ${newBankName} foi adicionado com sucesso.` });

@@ -13,18 +13,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BankMaster, BankCategory, Promotora } from '@/lib/types';
 =======
 import type { BankMaster } from '@/lib/types';
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
+=======
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { BankMaster, BankCategory } from '@/lib/types';
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
 import { useToast } from '@/hooks/use-toast';
 
 interface EditBankModalProps {
   isOpen: boolean;
   onClose: () => void;
   bank: BankMaster;
+<<<<<<< HEAD
 <<<<<<< HEAD
   promotoras: Promotora[];
   onSave: (updatedData: { name: string, logoUrl: string, categories: BankCategory[], promotoraId?: string }) => Promise<void>;
@@ -40,13 +46,22 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
   const [promotoraId, setPromotoraId] = useState<string | undefined>(undefined);
 =======
   onSave: (updatedData: { name: string, logoUrl: string }) => Promise<void>;
+=======
+  onSave: (updatedData: { name: string, logoUrl: string, category: BankCategory }) => Promise<void>;
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
 }
+
+const categories: BankCategory[] = ['CLT', 'FGTS', 'GOV', 'INSS', 'Custom'];
 
 export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBankModalProps) {
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+<<<<<<< HEAD
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
+=======
+  const [category, setCategory] = useState<BankCategory>('Custom');
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -54,8 +69,12 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
       setName(bank.name);
       setLogoUrl(bank.logoUrl || '');
 <<<<<<< HEAD
+<<<<<<< HEAD
       setCategories(bank.categories || []);
       setPromotoraId(bank.promotoraId || 'none');
+=======
+      setCategory(bank.category || 'Custom');
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
     }
   }, [bank]);
 
@@ -96,8 +115,12 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
 =======
 
     setIsSaving(true);
+<<<<<<< HEAD
     await onSave({ name, logoUrl });
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
+=======
+    await onSave({ name, logoUrl, category });
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
     setIsSaving(false);
   };
 
@@ -108,12 +131,16 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
           <DialogTitle>Editar Banco: {bank.name}</DialogTitle>
           <DialogDescription>
 <<<<<<< HEAD
+<<<<<<< HEAD
             Atualize os detalhes do banco.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
 =======
             Atualize o nome e a URL da logo do banco.
+=======
+            Atualize o nome, a URL da logo e a categoria do banco.
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -140,6 +167,7 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
               className="col-span-3"
             />
           </div>
+<<<<<<< HEAD
 <<<<<<< HEAD
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="promotora-select" className="text-right">
@@ -176,6 +204,23 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
           </div>
 =======
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
+=======
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="edit-bank-category" className="text-right">
+              Categoria
+            </Label>
+             <Select value={category} onValueChange={(value: BankCategory) => setCategory(value)}>
+                <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                    {categories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSaving}>

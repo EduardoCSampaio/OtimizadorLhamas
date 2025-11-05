@@ -48,6 +48,7 @@
           "type": "string",
           "description": "URL for the bank's logo."
         },
+<<<<<<< HEAD
         "categories": {
           "type": "array",
           "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
@@ -61,6 +62,18 @@
               "Custom"
             ]
           }
+=======
+        "category": {
+          "type": "string",
+          "description": "Category of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
+          "enum": [
+            "CLT",
+            "FGTS",
+            "GOV",
+            "INSS",
+            "Custom"
+          ]
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
         },
         "status": {
           "type": "string",
@@ -91,7 +104,12 @@
       },
       "required": [
         "name",
+<<<<<<< HEAD
         "categories",
+=======
+        "category",
+        "status",
+>>>>>>> e14c048 (Vamos lá, quando eu clicar em ação para colocar a url ou for adicionar u)
         "createdAt",
         "updatedAt"
       ]

@@ -17,10 +17,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { BankChecklistStatus, BankMaster, BankCategory, UserProfile } from '@/lib/types';
-import { CheckCircle, History, Landmark, RefreshCw } from 'lucide-react';
+import type { BankChecklistStatus, BankMaster, BankCategory, Promotora } from '@/lib/types';
+import { CheckCircle, History, Landmark, RefreshCw, Building } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -44,6 +50,11 @@ import {
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
+type GroupedBanks = {
+  promotora?: Promotora;
+  banks: CombinedBankStatus[];
+}
+
 export default function BankProposalView() {
   const { toast } = useToast();
   const { user } = useUser();
@@ -56,13 +67,19 @@ export default function BankProposalView() {
   );
   const { data: masterBanks, isLoading: isLoadingMasterBanks } = useCollection<BankMaster>(banksMasterCollectionRef);
 
+  const promotorasCollectionRef = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'promotoras'), orderBy('name')) : null),
+    [firestore]
+  );
+  const { data: promotoras, isLoading: isLoadingPromotoras } = useCollection<Promotora>(promotorasCollectionRef);
+
   const userChecklistCollectionRef = useMemoFirebase(() => {
       if (!firestore || !user) return null;
       return collection(firestore, 'users', user.uid, 'bankChecklists');
   }, [firestore, user]);
   const { data: userChecklist, isLoading: isLoadingChecklist } = useCollection<BankChecklistStatus>(userChecklistCollectionRef);
 
-  const [combinedBankData, setCombinedBankData] = useState<CombinedBankStatus[]>([]);
+  const [groupedBankData, setGroupedBankData] = useState<GroupedBanks[]>([]);
   const [isResetting, setIsResetting] = useState(false);
 
   // Fetch user role
@@ -99,38 +116,48 @@ export default function BankProposalView() {
     }
   }, [masterBanks, userChecklist, firestore, user]);
 
-  // Effect to combine master bank list with user checklist, filtering for "Inserção"
   useEffect(() => {
-      if (isLoadingMasterBanks || isLoadingChecklist || !masterBanks) {
-          setCombinedBankData([]);
-          return;
+    if (isLoadingMasterBanks || isLoadingChecklist || !masterBanks || isLoadingPromotoras) {
+      setGroupedBankData([]);
+      return;
+    }
+
+    const checklistMap = new Map(userChecklist?.map(item => [item.id, item]));
+    const insertionBanks = masterBanks.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('Inserção'));
+
+    const combined = insertionBanks.map(bank => {
+      const checklistStatus = checklistMap.get(bank.id);
+      return {
+        ...bank,
+        id: bank.id,
+        status: checklistStatus?.status || 'Pendente',
+        insertionDate: checklistStatus?.insertionDate || null,
+        updatedAt: checklistStatus?.updatedAt || bank.updatedAt,
+        priority: calculatePriority(checklistStatus?.status || 'Pendente', checklistStatus?.insertionDate),
+      };
+    });
+
+    const groups: Record<string, GroupedBanks> = {};
+
+    combined.forEach(bank => {
+      const promotoraId = bank.promotoraId || 'independent';
+      if (!groups[promotoraId]) {
+        const promotora = promotoras?.find(p => p.id === bank.promotoraId);
+        groups[promotoraId] = { promotora, banks: [] };
       }
-      
-      const checklistMap = new Map(userChecklist?.map(item => [item.id, item]));
+      groups[promotoraId].banks.push(bank);
+    });
 
-      const insertionBanks = masterBanks.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('Inserção'));
-      
-      const combined = insertionBanks.map(bank => {
-          const checklistStatus = checklistMap.get(bank.id);
-          const status = checklistStatus?.status || 'Pendente';
-          const insertionDate = checklistStatus?.insertionDate || null;
-          const updatedAt = checklistStatus?.updatedAt || bank.updatedAt;
+    const sortedGroups = Object.values(groups).sort((a, b) => {
+        if (a.promotora && b.promotora) return a.promotora.name.localeCompare(b.promotora.name);
+        if (a.promotora) return -1; // a (promotora) comes before b (independent)
+        if (b.promotora) return 1;  // b (promotora) comes before a (independent)
+        return 0;
+    });
 
-          return {
-              ...bank,
-              ...checklistStatus,
-              id: bank.id, 
-              status: status,
-              insertionDate: insertionDate,
-              updatedAt: updatedAt,
-              priority: calculatePriority(status, insertionDate)
-          };
-      });
+    setGroupedBankData(sortedGroups);
 
-      combined.sort((a, b) => a.name.localeCompare(b.name));
-      setCombinedBankData(combined);
-
-  }, [masterBanks, userChecklist, isLoadingMasterBanks, isLoadingChecklist]);
+  }, [masterBanks, userChecklist, promotoras, isLoadingMasterBanks, isLoadingChecklist, isLoadingPromotoras]);
 
 
   const calculatePriority = (status: 'Pendente' | 'Concluído', insertionDate: any): 'Alta' | 'Média' | 'Baixa' => {
@@ -184,7 +211,8 @@ export default function BankProposalView() {
     if (!user || !firestore) return;
     
     const bankDocRef = doc(firestore, 'users', user.uid, 'bankChecklists', bankId);
-    const currentBank = combinedBankData.find(b => b.id === bankId);
+    
+    const currentBank = groupedBankData.flatMap(g => g.banks).find(b => b.id === bankId);
     if (!currentBank) return;
 
     const isCompleted = currentBank.status === 'Concluído';
@@ -208,7 +236,41 @@ export default function BankProposalView() {
     });
   };
   
-  const isLoading = isLoadingMasterBanks || isLoadingChecklist;
+  const handleCompletePromotora = (group: GroupedBanks) => {
+    if (!user || !firestore || !group.promotora) return;
+
+    const banksToUpdate = group.banks.filter(b => b.status === 'Pendente');
+    if (banksToUpdate.length === 0) {
+        toast({ title: 'Tudo pronto!', description: `Todos os bancos da promotora ${group.promotora.name} já estavam concluídos.` });
+        return;
+    }
+
+    const batch = writeBatch(firestore);
+    banksToUpdate.forEach(bank => {
+        const bankDocRef = doc(firestore, 'users', user.uid, 'bankChecklists', bank.id);
+        batch.update(bankDocRef, {
+            status: 'Concluído',
+            insertionDate: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+    });
+
+    batch.commit().then(() => {
+        createActivityLog(firestore, user.email || 'unknown', {
+            type: 'STATUS_CHANGE',
+            description: `Concluiu todas as inserções pendentes da promotora ${group.promotora!.name}.`
+        });
+        toast({
+            title: `Promotora Concluída!`,
+            description: `${banksToUpdate.length} inserções da promotora ${group.promotora!.name} foram marcadas como "Concluído".`
+        });
+    }).catch(error => {
+        console.error("Error completing promotora:", error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível concluir as inserções da promotora.' });
+    });
+  }
+
+  const isLoading = isLoadingMasterBanks || isLoadingChecklist || isLoadingPromotoras;
 
   const handleResetChecklist = async () => {
     if (!firestore || !user) return;
@@ -258,50 +320,42 @@ export default function BankProposalView() {
     }
   }
 
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle>Checklist Diário de Inserções</CardTitle>
-                <CardDescription className="mt-2">
-                    Controle diário da inserção de propostas nos sistemas bancários. Apenas bancos marcados com a categoria "Inserção" são exibidos aqui.
-                </CardDescription>
-              </div>
-              {userRole === 'master' && (
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" disabled={isResetting}>
-                        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
-                        {isResetting ? 'Reiniciando...' : 'Reiniciar Checklist'}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**. Isso não pode ser desfeito.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleResetChecklist}>Continuar</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-              )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading && 
-            <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+  const renderGroup = (group: GroupedBanks) => {
+    const total = group.banks.length;
+    const completed = group.banks.filter(b => b.status === 'Concluído').length;
+    const allCompleted = total > 0 && total === completed;
+
+    return (
+      <AccordionItem value={group.promotora?.id || 'independent'} key={group.promotora?.id || 'independent'}>
+        <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full pr-4">
+                <div className="flex items-center gap-4">
+                    {group.promotora ? (
+                       <Image src={group.promotora.logoUrl || ''} alt={`${group.promotora.name} logo`} width={32} height={32} className="h-8 w-8 object-contain rounded-md" />
+                    ) : (
+                       <div className="h-8 w-8 flex items-center justify-center bg-muted rounded-md">
+                         <Building className="h-5 w-5 text-muted-foreground" />
+                       </div>
+                    )}
+                    <div>
+                        <h3 className="text-lg font-semibold">{group.promotora?.name || 'Bancos Independentes'}</h3>
+                        <p className="text-sm text-muted-foreground">{completed} de {total} concluídos</p>
+                    </div>
+                </div>
+                {group.promotora && (
+                    <Button
+                        size="sm"
+                        variant={allCompleted ? "secondary" : "default"}
+                        onClick={(e) => { e.stopPropagation(); handleCompletePromotora(group); }}
+                        disabled={allCompleted}
+                    >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        {allCompleted ? 'Promotora Concluída' : 'Concluir Promotora'}
+                    </Button>
+                )}
             </div>
-          }
-          {!isLoading && combinedBankData.length > 0 ? (
+        </AccordionTrigger>
+        <AccordionContent>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -313,7 +367,7 @@ export default function BankProposalView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {combinedBankData.map(bank => (
+                {group.banks.map(bank => (
                   <TableRow key={bank.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
@@ -359,8 +413,59 @@ export default function BankProposalView() {
                 ))}
               </TableBody>
             </Table>
+        </AccordionContent>
+      </AccordionItem>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>Checklist Diário de Inserções</CardTitle>
+                <CardDescription className="mt-2">
+                    Controle diário da inserção de propostas nos sistemas bancários. Apenas bancos marcados com a categoria "Inserção" são exibidos aqui.
+                </CardDescription>
+              </div>
+              {userRole === 'master' && (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" disabled={isResetting}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+                        {isResetting ? 'Reiniciando...' : 'Reiniciar Checklist'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**. Isso não pode ser desfeito.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleResetChecklist}>Continuar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+              )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? ( 
+             <div className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+            </div>
+          ) : groupedBankData.length > 0 ? (
+            <Accordion type="multiple" className="w-full" defaultValue={groupedBankData.map(g => g.promotora?.id || 'independent')}>
+              {groupedBankData.map(group => renderGroup(group))}
+            </Accordion>
           ) : (
-            !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco de inserção encontrado. Vá para a página 'Bancos' para adicionar bancos e marcá-los com a categoria "Inserção".</p>
+            <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco de inserção encontrado. Vá para a página 'Bancos' para adicionar bancos e marcá-los com a categoria "Inserção".</p>
           )}
         </CardContent>
       </Card>

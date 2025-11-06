@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirebase } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
@@ -31,8 +31,7 @@ import { cn } from '@/lib/utils';
 
 export default function Header() {
   const userAvatar = PlaceHolderImages.find((p) => p.id === 'user-avatar');
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const { user, isUserLoading, auth } = useFirebase();
   const router = useRouter();
   const pathname = usePathname();
 

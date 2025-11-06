@@ -8,6 +8,8 @@ import BankProposalView from '@/components/bank-proposal-view';
 import PriorityTasks from '@/components/priority-tasks';
 import ActivityLog from '@/components/activity-log';
 import { Skeleton } from '@/components/ui/skeleton';
+import StatsCards from '@/components/dashboard/stats-cards';
+import CompletionsChart from '@/components/dashboard/completions-chart';
 
 export default function Home() {
   const router = useRouter();
@@ -24,6 +26,12 @@ export default function Home() {
       <div className="flex min-h-screen w-full flex-col bg-background">
         <Header />
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+             <Skeleton className="h-32 w-full" />
+             <Skeleton className="h-32 w-full" />
+             <Skeleton className="h-32 w-full" />
+             <Skeleton className="h-32 w-full" />
+          </div>
           <div className="grid gap-4 md:gap-8 lg:grid-cols-7">
             <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-5">
                 <Skeleton className="h-[400px] w-full" />
@@ -42,8 +50,10 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <StatsCards />
         <div className="grid gap-4 md:gap-8 lg:grid-cols-7">
           <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-5">
+            <CompletionsChart />
             <BankProposalView />
           </div>
           <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">

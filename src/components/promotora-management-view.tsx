@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -39,7 +39,7 @@ import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlo
 import { createActivityLog } from '@/firebase/user-data';
 import type { Promotora } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
-import { Briefcase, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Briefcase, PlusCircle, Edit, Trash2, Search } from 'lucide-react';
 import EditPromotoraModal from './edit-promotora-modal';
 
 export default function PromotoraManagementView() {
@@ -55,12 +55,21 @@ export default function PromotoraManagementView() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPromotora, setSelectedPromotora] = useState<Promotora | null>(null);
 
+  // Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Data Fetching
   const promotorasCollectionRef = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'promotoras'), orderBy('name')) : null),
     [firestore]
   );
   const { data: promotoras, isLoading } = useCollection<Promotora>(promotorasCollectionRef);
+
+  const filteredPromotoras = useMemo(() => {
+      if (!promotoras) return [];
+      return promotoras.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [promotoras, searchTerm]);
+
 
   const handleAddPromotora = async () => {
     if (newPromotoraName.trim() === '') {
@@ -174,13 +183,23 @@ export default function PromotoraManagementView() {
           <CardDescription>
             Visualize, edite ou remova as promotoras existentes.
           </CardDescription>
+           <div className="relative mt-4">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por nome da promotora..."
+                className="w-full rounded-lg bg-background pl-8 md:w-1/3"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
-          ) : promotoras && promotoras.length > 0 ? (
+          ) : filteredPromotoras && filteredPromotoras.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -189,7 +208,7 @@ export default function PromotoraManagementView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {promotoras.map((promotora) => (
+                {filteredPromotoras.map((promotora) => (
                   <TableRow key={promotora.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
@@ -235,7 +254,7 @@ export default function PromotoraManagementView() {
             </Table>
           ) : (
             <p className="text-muted-foreground text-sm text-center p-4">
-              Nenhuma promotora cadastrada. Adicione uma acima para começar.
+              {searchTerm ? 'Nenhuma promotora encontrada.' : 'Nenhuma promotora cadastrada. Adicione uma acima para começar.'}
             </p>
           )}
         </CardContent>

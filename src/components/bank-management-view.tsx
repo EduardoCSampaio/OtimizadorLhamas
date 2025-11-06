@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BankMaster, BankCategory, Promotora } from '@/lib/types';
-import { Landmark, PlusCircle, Edit, Briefcase } from 'lucide-react';
+import { Landmark, PlusCircle, Edit, Briefcase, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useUser } from '@/firebase';
 import {
@@ -60,6 +60,12 @@ export default function BankManagementView() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBank, setSelectedBank] = useState<BankMaster | null>(null);
 
+  // Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState<BankCategory | 'all'>('all');
+  const [filterPromotora, setFilterPromotora] = useState<string | 'all'>('all');
+
+
   // Data fetching
   const banksMasterCollectionRef = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
@@ -77,6 +83,16 @@ export default function BankManagementView() {
     if (!promotoras) return new Map();
     return new Map(promotoras.map(p => [p.id, p]));
   }, [promotoras]);
+
+  const filteredBanks = useMemo(() => {
+    if (!masterBanks) return [];
+    return masterBanks.filter(bank => {
+        const matchesSearch = searchTerm === '' || bank.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = filterCategory === 'all' || (bank.categories && bank.categories.includes(filterCategory));
+        const matchesPromotora = filterPromotora === 'all' || bank.promotoraId === filterPromotora;
+        return matchesSearch && matchesCategory && matchesPromotora;
+    });
+  }, [masterBanks, searchTerm, filterCategory, filterPromotora]);
 
 
   const getCategoryBadgeVariant = (category: BankCategory) => {
@@ -276,6 +292,40 @@ export default function BankManagementView() {
           <CardDescription>
             Visualize e edite todos os bancos cadastrados no sistema.
           </CardDescription>
+          <div className="mt-4 flex flex-col sm:flex-row gap-4">
+             <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por nome do banco..."
+                className="w-full rounded-lg bg-background pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+             <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value as BankCategory | 'all')}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filtrar por Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Categorias</SelectItem>
+                {allCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+             <Select value={filterPromotora} onValueChange={(value) => setFilterPromotora(value as string | 'all')}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filtrar por Promotora" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Promotoras</SelectItem>
+                 {promotoras?.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoadingMasterBanks && (
@@ -285,7 +335,7 @@ export default function BankManagementView() {
                 <Skeleton className="h-12 w-full" />
             </div>
           )}
-          {!isLoadingMasterBanks && masterBanks && masterBanks.length > 0 ? (
+          {!isLoadingMasterBanks && filteredBanks && filteredBanks.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -296,7 +346,7 @@ export default function BankManagementView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {masterBanks.map((bank) => {
+                {filteredBanks.map((bank) => {
                     const promotora = bank.promotoraId ? promotorasMap.get(bank.promotoraId) : null;
                     return (
                         <TableRow key={bank.id}>
@@ -358,7 +408,7 @@ export default function BankManagementView() {
           ) : (
             !isLoadingMasterBanks && (
               <p className="text-muted-foreground text-sm p-4 text-center">
-                Nenhum banco adicionado ao sistema ainda. Comece adicionando um acima.
+                Nenhum banco encontrado com os filtros aplicados.
               </p>
             )
           )}

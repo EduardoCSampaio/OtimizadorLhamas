@@ -62,12 +62,17 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
   const { user } = useUser();
   const isMaster = userRole === 'master';
 
-  const cltRulesCollectionRef = useMemoFirebase(
+  const cltRulesQueryRef = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'bankStatuses', bank.id, 'cltRules'), orderBy('ruleName')) : null),
     [firestore, bank.id]
   );
+
+  const cltRulesCollectionRef = useMemoFirebase(
+      () => (firestore ? collection(firestore, 'bankStatuses', bank.id, 'cltRules') : null),
+      [firestore, bank.id]
+  );
   
-  const { data: cltRules, isLoading } = useCollection<CLTRule>(cltRulesCollectionRef);
+  const { data: cltRules, isLoading } = useCollection<CLTRule>(cltRulesQueryRef);
 
   const [newRules, setNewRules] = useState<{ ruleName: string, ruleValue: string }[]>([]);
   const [editingRule, setEditingRule] = useState<CLTRule | null>(null);
@@ -257,7 +262,6 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         head: [['Regra', 'Valor']],
         body: cltRules?.map(rule => [rule.ruleName, rule.ruleValue]),
         theme: 'striped',
-        avoidRowSplit: true,
         headStyles: { fillColor: [41, 128, 185], textColor: [255,255,255] },
         bodyStyles: { textColor: [0, 0, 0] },
         didDrawPage: (data) => {

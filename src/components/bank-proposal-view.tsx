@@ -65,6 +65,7 @@ type GroupedBanks = {
 }
 
 const allCategories: BankCategory[] = ['Inserção', 'CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
+const localLogoPath = '/logo.png';
 
 export default function BankProposalView() {
   const { toast } = useToast();
@@ -368,9 +369,10 @@ export default function BankProposalView() {
         });
 
     } catch (error: any) {
+        // Instrument with contextual error
         const permissionError = new FirestorePermissionError({
-            path: 'users',
-            operation: 'list',
+            path: 'users', // The path that is likely failing (listing all users)
+            operation: 'list', // The operation is listing users
         });
         errorEmitter.emit('permission-error', permissionError);
 
@@ -433,6 +435,8 @@ export default function BankProposalView() {
         };
     }));
 
+    const companyLogoImage = await loadImage(localLogoPath).catch(() => undefined);
+
     docPDF.autoTable({
         head: [['Banco', 'Promotora', 'Data da Conclusão']],
         body: body.map(item => [item.logo ? '' : item.bankName, item.promotora, item.date]),
@@ -451,15 +455,30 @@ export default function BankProposalView() {
             }
         },
         willDrawPage: (data) => {
+            const pageMargin = 14;
+            const pageWidth = docPDF.internal.pageSize.getWidth();
+            
             docPDF.setFontSize(18);
-            docPDF.text('Relatório Diário de Inserções Concluídas', data.settings.margin.left, 15);
+            docPDF.setFont('helvetica', 'bold');
+            docPDF.text('Relatório Diário de Inserções', pageMargin, 23);
+            
             docPDF.setFontSize(10);
-            docPDF.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, data.settings.margin.left, 20);
+            docPDF.setFont('helvetica', 'normal');
+            docPDF.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pageMargin, 28);
+            
+            if (companyLogoImage) {
+                const logoHeight = 25; 
+                const aspectRatio = companyLogoImage.naturalWidth / companyLogoImage.naturalHeight;
+                const logoWidth = logoHeight * aspectRatio;
+                const logoX = pageWidth - logoWidth - pageMargin;
+                const logoY = 10;
+                docPDF.addImage(companyLogoImage, 'PNG', logoX, logoY, logoWidth, logoHeight);
+            }
         },
         rowPageBreak: 'auto',
         bodyStyles: { minCellHeight: 12, valign: 'middle' },
         headStyles: { fillColor: [22, 22, 22] },
-        margin: { top: 25 },
+        margin: { top: 35 },
     });
     
     docPDF.save(`relatorio_concluidos_${format(new Date(), 'yyyy-MM-dd')}.pdf`);

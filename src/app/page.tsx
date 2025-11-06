@@ -10,6 +10,8 @@ import ActivityLog from '@/components/activity-log';
 import { Skeleton } from '@/components/ui/skeleton';
 import StatsCards from '@/components/dashboard/stats-cards';
 import CompletionsChart from '@/components/dashboard/completions-chart';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LayoutDashboard, Landmark } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
@@ -50,17 +52,35 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <StatsCards />
-        <div className="grid gap-4 md:gap-8 lg:grid-cols-7">
-          <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-5">
-            <CompletionsChart />
-            <BankProposalView />
-          </div>
-          <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
-            <PriorityTasks />
-            <ActivityLog />
-          </div>
-        </div>
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
+            <TabsTrigger value="dashboard">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="workbank">
+                <Landmark className="mr-2 h-4 w-4" />
+                Bancos Workbank
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="dashboard" className="mt-6">
+            <div className="flex flex-col gap-4">
+              <StatsCards />
+              <div className="grid gap-4 md:gap-8 lg:grid-cols-7">
+                  <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-5">
+                      <CompletionsChart />
+                  </div>
+                  <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
+                      <PriorityTasks />
+                      <ActivityLog />
+                  </div>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="workbank" className="mt-6">
+              <BankProposalView />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

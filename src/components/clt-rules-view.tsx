@@ -97,7 +97,10 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   };
 
   const handleExportAllToPDF = async () => {
-    if (!firestore || !cltBanks || cltBanks.length === 0) {
+    // Re-filter the banks at the moment of the click to ensure data consistency
+    const currentCltBanks = banks?.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('CLT')) || [];
+
+    if (!firestore || !currentCltBanks || currentCltBanks.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Nenhum banco CLT para exportar',
@@ -108,10 +111,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   
     setIsExporting(true);
 
-    const banksToExport: BankMaster[] = JSON.parse(JSON.stringify(cltBanks));
-
     const dataForPdf: BankDataForPDF[] = await Promise.all(
-        banksToExport.map(async (bank: BankMaster) => {
+        currentCltBanks.map(async (bank: BankMaster) => {
             let logoImage: HTMLImageElement | undefined = undefined;
             if (bank.logoUrl) {
                 try {

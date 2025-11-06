@@ -9,6 +9,17 @@ import type { BankChecklistStatus } from '@/lib/types';
 
 const LAST_SUMMARY_KEY = 'lastDailySummaryDate';
 
+const getGreeting = (): string => {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 12) {
+        return 'Bom Dia';
+    }
+    if (hour >= 12 && hour < 19) { // 12:00 até 18:59
+        return 'Boa Tarde';
+    }
+    return 'Boa Noite';
+};
+
 export default function DailySummaryNotification() {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
@@ -49,14 +60,15 @@ export default function DailySummaryNotification() {
       // yesterdayCompletions will be null initially, then populated. We wait for it to be an array.
       if (yesterdayCompletions !== null) {
           const completedCount = yesterdayCompletions.length;
+          const greeting = getGreeting();
           let title = '';
           let description = '';
     
           if (completedCount > 0) {
             title = `Resumo de Ontem: ${completedCount} Inserção(ões) Concluída(s)! 🎉`;
-            description = 'Excelente trabalho! Vamos com tudo para mais um dia produtivo. 🚀';
+            description = `${greeting}! Excelente trabalho! Vamos com tudo para mais um dia produtivo. 🚀`;
           } else {
-            title = 'Bom Dia e Bom Trabalho! ☀️';
+            title = `${greeting} e Bom Trabalho! ☀️`;
             description = 'Nenhuma inserção concluída registrada para ontem. Um novo dia, novas oportunidades!';
           }
     

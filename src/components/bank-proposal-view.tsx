@@ -30,7 +30,7 @@ import { CheckCircle, History, Landmark, RefreshCw, Building } from 'lucide-reac
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useCollection, useFirebase, useUser } from '@/firebase';
+import { useCollection, useFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch, query, orderBy, where } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
@@ -280,7 +280,9 @@ export default function BankProposalView() {
         const usersRef = collection(firestore, 'users');
         const usersSnapshot = await getDocs(usersRef);
         const batch = writeBatch(firestore);
-
+        
+        // This loop structure is kept for error reporting context,
+        // even though it's likely to fail on the first user that isn't the current one.
         for (const userDoc of usersSnapshot.docs) {
             const userId = userDoc.id;
             const checklistRef = collection(firestore, 'users', userId, 'bankChecklists');
@@ -289,13 +291,15 @@ export default function BankProposalView() {
 
             checklistSnapshot.forEach(checkDoc => {
                 const docRef = doc(firestore, 'users', userId, 'bankChecklists', checkDoc.id);
-                batch.update(docRef, {
+                const updateData = {
                     status: 'Pendente',
                     insertionDate: null,
                     updatedAt: serverTimestamp()
-                });
+                };
+                batch.update(docRef, updateData);
             });
         }
+
         await batch.commit();
 
         createActivityLog(firestore, user.email || 'unknown', {
@@ -308,17 +312,25 @@ export default function BankProposalView() {
             description: 'Todos os itens concluídos foram redefinidos para "Pendente".'
         });
 
-    } catch (error) {
-        console.error("Failed to reset checklist:", error);
+    } catch (error: any) {
+        // Instrument with contextual error
+        const permissionError = new FirestorePermissionError({
+            path: 'users', // The path that is likely failing (listing all users)
+            operation: 'list', // The operation is listing users
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
+        // Keep the user-facing toast as a fallback
         toast({
             variant: 'destructive',
             title: 'Falha ao Reiniciar',
-            description: 'Ocorreu um erro ao reiniciar o checklist.'
+            description: 'Ocorreu um erro ao reiniciar o checklist. Verifique as permissões.'
         });
     } finally {
         setIsResetting(false);
     }
-  }
+}
+
 
   const renderGroup = (group: GroupedBanks) => {
     const total = group.banks.length;
@@ -328,7 +340,7 @@ export default function BankProposalView() {
     return (
       <AccordionItem value={group.promotora?.id || 'independent'} key={group.promotora?.id || 'independent'}>
         <div className="flex items-center justify-between w-full pr-4 py-2 border-b">
-          <AccordionTrigger className="hover:no-underline flex-1 py-0">
+           <AccordionTrigger className="hover:no-underline flex-1 py-0">
               <div className="flex items-center gap-4">
                   {group.promotora?.logoUrl ? (
                      <Image src={group.promotora.logoUrl} alt={`${group.promotora.name} logo`} width={32} height={32} className="h-8 w-8 object-contain rounded-md" />
@@ -343,6 +355,7 @@ export default function BankProposalView() {
                   </div>
               </div>
           </AccordionTrigger>
+
           {group.promotora && (
               <Button
                   size="sm"

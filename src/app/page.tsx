@@ -34,15 +34,11 @@ export default function Home() {
              <Skeleton className="h-32 w-full" />
              <Skeleton className="h-32 w-full" />
           </div>
-          <div className="grid gap-4 md:gap-8 lg:grid-cols-7">
-            <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-5">
-                <Skeleton className="h-[400px] w-full" />
-            </div>
-            <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
-                <Skeleton className="h-[200px] w-full" />
-                <Skeleton className="h-[200px] w-full" />
-            </div>
+          <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
+            <Skeleton className="h-[350px] w-full" />
+            <Skeleton className="h-[350px] w-full" />
           </div>
+            <Skeleton className="h-[400px] w-full" />
         </main>
       </div>
     );
@@ -64,17 +60,13 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard" className="mt-6">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 md:gap-8">
               <StatsCards />
-              <div className="grid gap-4 md:gap-8 lg:grid-cols-7">
-                  <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-5">
-                      <CompletionsChart />
-                  </div>
-                  <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
-                      <PriorityTasks />
-                      <ActivityLog />
-                  </div>
+              <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
+                <CompletionsChart />
+                <PriorityTasks />
               </div>
+              <ActivityLog />
             </div>
           </TabsContent>
           <TabsContent value="workbank" className="mt-6">

@@ -23,7 +23,7 @@ import { useCollection, useFirebase } from '@/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import type { BankMaster, CLTRule } from '@/lib/types';
 import { useMemoFirebase } from '@/firebase/provider';
-import CltRulesManagerModal from './clt-rules-manager-modal';
+import CltRulesManagerModal from '@/components/clt-rules-manager-modal';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';

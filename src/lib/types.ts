@@ -52,3 +52,10 @@ export interface Activity {
   userEmail: string;
   type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE' | 'REOPEN';
 }
+
+export interface UserProfile {
+    id: string;
+    email: string;
+    displayName: string;
+    role: 'master' | 'user';
+}

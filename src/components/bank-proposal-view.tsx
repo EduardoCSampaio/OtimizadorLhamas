@@ -19,17 +19,28 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { BankChecklistStatus, BankMaster, BankCategory } from '@/lib/types';
-import { CheckCircle, History, Landmark } from 'lucide-react';
+import type { BankChecklistStatus, BankMaster, BankCategory, UserProfile } from '@/lib/types';
+import { CheckCircle, History, Landmark, RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, writeBatch, query, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch, query, orderBy, where } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
 import { createActivityLog } from '@/firebase/user-data';
 import { Skeleton } from './ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
@@ -37,6 +48,7 @@ export default function BankProposalView() {
   const { toast } = useToast();
   const { user } = useUser();
   const { firestore } = useFirebase();
+  const [userRole, setUserRole] = useState<'master' | 'user' | null>(null);
   
   const banksMasterCollectionRef = useMemoFirebase(
       () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
@@ -51,6 +63,19 @@ export default function BankProposalView() {
   const { data: userChecklist, isLoading: isLoadingChecklist } = useCollection<BankChecklistStatus>(userChecklistCollectionRef);
 
   const [combinedBankData, setCombinedBankData] = useState<CombinedBankStatus[]>([]);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Fetch user role
+  useEffect(() => {
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setUserRole(docSnap.data().role);
+        }
+      });
+    }
+  }, [user, firestore]);
 
   // Effect to create checklist items for new banks
   useEffect(() => {
@@ -182,6 +207,54 @@ export default function BankProposalView() {
         description: `A inserção no banco ${currentBank.name} foi marcada como ${newStatus.toLowerCase()}.`,
     });
   };
+
+  const handleResetChecklist = async () => {
+    if (!firestore || !user) return;
+    setIsResetting(true);
+
+    try {
+        const usersRef = collection(firestore, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+        const batch = writeBatch(firestore);
+
+        for (const userDoc of usersSnapshot.docs) {
+            const userId = userDoc.id;
+            const checklistRef = collection(firestore, 'users', userId, 'bankChecklists');
+            const checklistQuery = query(checklistRef, where('status', '==', 'Concluído'));
+            const checklistSnapshot = await getDocs(checklistQuery);
+
+            checklistSnapshot.forEach(checkDoc => {
+                const docRef = doc(firestore, 'users', userId, 'bankChecklists', checkDoc.id);
+                batch.update(docRef, {
+                    status: 'Pendente',
+                    insertionDate: null,
+                    updatedAt: serverTimestamp()
+                });
+            });
+        }
+        await batch.commit();
+
+        createActivityLog(firestore, user.email || 'unknown', {
+            type: 'REOPEN',
+            description: `Reiniciou o checklist diário para todos os usuários.`
+        });
+
+        toast({
+            title: 'Checklist Reiniciado!',
+            description: 'Todos os itens concluídos foram redefinidos para "Pendente".'
+        });
+
+    } catch (error) {
+        console.error("Failed to reset checklist:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Falha ao Reiniciar',
+            description: 'Ocorreu um erro ao reiniciar o checklist.'
+        });
+    } finally {
+        setIsResetting(false);
+    }
+  }
   
   const isLoading = isLoadingMasterBanks || isLoadingChecklist;
 
@@ -189,10 +262,36 @@ export default function BankProposalView() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Checklist Diário de Inserções</CardTitle>
-          <CardDescription>
-            Controle diário da inserção de propostas nos sistemas bancários. Apenas bancos marcados com a categoria "Inserção" são exibidos aqui.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>Checklist Diário de Inserções</CardTitle>
+                <CardDescription className="mt-2">
+                    Controle diário da inserção de propostas nos sistemas bancários. Apenas bancos marcados com a categoria "Inserção" são exibidos aqui.
+                </CardDescription>
+              </div>
+              {userRole === 'master' && (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" disabled={isResetting}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+                        {isResetting ? 'Reiniciando...' : 'Reiniciar Checklist'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**. Isso não pode ser desfeito.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleResetChecklist}>Continuar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+              )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading && 

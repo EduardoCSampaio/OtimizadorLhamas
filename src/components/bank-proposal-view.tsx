@@ -327,34 +327,35 @@ export default function BankProposalView() {
 
     return (
       <AccordionItem value={group.promotora?.id || 'independent'} key={group.promotora?.id || 'independent'}>
-        <AccordionTrigger className="hover:no-underline">
-            <div className="flex items-center justify-between w-full pr-4">
-                <div className="flex items-center gap-4">
-                    {group.promotora?.logoUrl ? (
-                       <Image src={group.promotora.logoUrl} alt={`${group.promotora.name} logo`} width={32} height={32} className="h-8 w-8 object-contain rounded-md" />
-                    ) : (
-                       <div className="h-8 w-8 flex items-center justify-center bg-muted rounded-md">
-                         <Building className="h-5 w-5 text-muted-foreground" />
-                       </div>
-                    )}
-                    <div>
-                        <h3 className="text-lg font-semibold">{group.promotora?.name || 'Bancos Independentes'}</h3>
-                        <p className="text-sm text-muted-foreground">{completed} de {total} concluídos</p>
-                    </div>
-                </div>
-                {group.promotora && (
-                    <Button
-                        size="sm"
-                        variant={allCompleted ? "secondary" : "default"}
-                        onClick={(e) => { e.stopPropagation(); handleCompletePromotora(group); }}
-                        disabled={allCompleted}
-                    >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        {allCompleted ? 'Promotora Concluída' : 'Concluir Promotora'}
-                    </Button>
-                )}
-            </div>
-        </AccordionTrigger>
+        <div className="flex items-center justify-between w-full pr-4 py-2 border-b">
+          <AccordionTrigger className="hover:no-underline flex-1 py-0">
+              <div className="flex items-center gap-4">
+                  {group.promotora?.logoUrl ? (
+                     <Image src={group.promotora.logoUrl} alt={`${group.promotora.name} logo`} width={32} height={32} className="h-8 w-8 object-contain rounded-md" />
+                  ) : (
+                     <div className="h-8 w-8 flex items-center justify-center bg-muted rounded-md">
+                       <Building className="h-5 w-5 text-muted-foreground" />
+                     </div>
+                  )}
+                  <div>
+                      <h3 className="text-lg font-semibold text-left">{group.promotora?.name || 'Bancos Independentes'}</h3>
+                      <p className="text-sm text-muted-foreground text-left">{completed} de {total} concluídos</p>
+                  </div>
+              </div>
+          </AccordionTrigger>
+          {group.promotora && (
+              <Button
+                  size="sm"
+                  variant={allCompleted ? "secondary" : "default"}
+                  onClick={(e) => { e.stopPropagation(); handleCompletePromotora(group); }}
+                  disabled={allCompleted}
+                  className="ml-4"
+              >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {allCompleted ? 'Promotora Concluída' : 'Concluir Promotora'}
+              </Button>
+          )}
+        </div>
         <AccordionContent>
             <Table>
               <TableHeader>

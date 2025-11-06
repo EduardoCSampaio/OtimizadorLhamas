@@ -142,6 +142,7 @@ export interface UserProfile {
     displayName: string;
     role: 'master' | 'user';
 }
+<<<<<<< HEAD
 
 export interface LoginCredential {
   type: string;
@@ -163,3 +164,5 @@ export interface BankAccessDetails {
   type: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'STATUS_CHANGE' | 'REOPEN';
 >>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 }
+=======
+>>>>>>> a2bf896 (Pode ser)

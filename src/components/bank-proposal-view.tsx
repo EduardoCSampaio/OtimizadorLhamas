@@ -135,18 +135,29 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/no
 =======
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { BankChecklistStatus, BankMaster, BankCategory } from '@/lib/types';
-import { CheckCircle, History, Landmark } from 'lucide-react';
+import type { BankChecklistStatus, BankMaster, BankCategory, UserProfile } from '@/lib/types';
+import { CheckCircle, History, Landmark, RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, writeBatch, query, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch, query, orderBy, where } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 >>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
 import { useMemoFirebase } from '@/firebase/provider';
 import { createActivityLog } from '@/firebase/user-data';
 import { Skeleton } from './ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
@@ -154,6 +165,7 @@ export default function BankProposalView() {
   const { toast } = useToast();
   const { user } = useUser();
   const { firestore } = useFirebase();
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 <<<<<<< HEAD
@@ -180,6 +192,9 @@ export default function BankProposalView() {
 
   // Master list of all banks, ordered by name
 =======
+=======
+  const [userRole, setUserRole] = useState<'master' | 'user' | null>(null);
+>>>>>>> a2bf896 (Pode ser)
   
 >>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
   const banksMasterCollectionRef = useMemoFirebase(
@@ -195,6 +210,19 @@ export default function BankProposalView() {
   const { data: userChecklist, isLoading: isLoadingChecklist } = useCollection<BankChecklistStatus>(userChecklistCollectionRef);
 
   const [combinedBankData, setCombinedBankData] = useState<CombinedBankStatus[]>([]);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Fetch user role
+  useEffect(() => {
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setUserRole(docSnap.data().role);
+        }
+      });
+    }
+  }, [user, firestore]);
 
   // Effect to create checklist items for new banks
   useEffect(() => {
@@ -555,6 +583,7 @@ export default function BankProposalView() {
         setIsResetting(false);
     }
   }
+<<<<<<< HEAD
 =======
 
   const handleOpenEditModal = (bank: BankMaster) => {
@@ -564,6 +593,8 @@ export default function BankProposalView() {
 >>>>>>> 1386718 (Pode colocar uma opção para mexermos nos bancos já adicionados também? S)
 =======
 >>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
+=======
+>>>>>>> a2bf896 (Pode ser)
   
   const isLoading = isLoadingMasterBanks || isLoadingChecklist;
 

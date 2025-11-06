@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BankChecklistStatus, BankMaster, BankCategory, Promotora } from '@/lib/types';
-import { CheckCircle, History, Landmark, RefreshCw, Building, Search, Filter } from 'lucide-react';
+import { CheckCircle, History, Landmark, RefreshCw, Building, Search, Filter, FileDown } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -49,7 +49,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import type { UserOptions } from 'jspdf-autotable';
+
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: UserOptions) => jsPDF;
+}
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
@@ -91,6 +97,7 @@ export default function BankProposalView() {
 
   const [groupedBankData, setGroupedBankData] = useState<GroupedBanks[]>([]);
   const [isResetting, setIsResetting] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Fetch user role
   useEffect(() => {
@@ -377,6 +384,87 @@ export default function BankProposalView() {
     }
 }
 
+  const loadImage = (url: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+          if (!url) {
+            reject(new Error("URL is empty"));
+            return;
+          }
+          const img = new window.Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = (err) => reject(err);
+          
+          if (url.startsWith('/')) {
+              img.src = window.location.origin + url;
+          } else {
+              img.src = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+          }
+      });
+  };
+
+  const handleGenerateReport = async () => {
+    const completedBanks = groupedBankData.flatMap(g => g.banks).filter(b => b.status === 'Concluído');
+    
+    if (completedBanks.length === 0) {
+        toast({ title: "Nenhum dado para exportar", description: "Não há bancos concluídos para gerar o relatório." });
+        return;
+    }
+    
+    setIsGeneratingReport(true);
+    const docPDF = new jsPDF() as jsPDFWithAutoTable;
+
+    const promotorasMap = new Map(promotoras?.map(p => [p.id, p.name]));
+    
+    const body = await Promise.all(completedBanks.map(async (bank) => {
+        let logoImage: HTMLImageElement | null = null;
+        if (bank.logoUrl) {
+            try {
+                logoImage = await loadImage(bank.logoUrl);
+            } catch (e) {
+                console.error("Error loading image for PDF:", e);
+            }
+        }
+        return {
+            bankName: bank.name,
+            logo: logoImage,
+            promotora: bank.promotoraId ? (promotorasMap.get(bank.promotoraId) || 'N/A') : 'Independente',
+            date: bank.insertionDate ? format(bank.insertionDate.toDate(), 'dd/MM/yyyy HH:mm:ss') : 'N/A'
+        };
+    }));
+
+    docPDF.autoTable({
+        head: [['Banco', 'Promotora', 'Data da Conclusão']],
+        body: body.map(item => [item.logo ? '' : item.bankName, item.promotora, item.date]),
+        didDrawCell: (data) => {
+            if (data.column.index === 0 && data.row.section === 'body') {
+                const item = body[data.row.index];
+                if (item.logo) {
+                    const cell = data.cell;
+                    const aspectRatio = item.logo.naturalWidth / item.logo.naturalHeight;
+                    const imgHeight = cell.height - 4;
+                    const imgWidth = imgHeight * aspectRatio;
+                    const x = cell.x + (cell.width - imgWidth) / 2;
+                    const y = cell.y + 2;
+                    docPDF.addImage(item.logo, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                }
+            }
+        },
+        willDrawPage: (data) => {
+            docPDF.setFontSize(18);
+            docPDF.text('Relatório Diário de Inserções Concluídas', data.settings.margin.left, 15);
+            docPDF.setFontSize(10);
+            docPDF.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, data.settings.margin.left, 20);
+        },
+        rowPageBreak: 'auto',
+        bodyStyles: { minCellHeight: 12, valign: 'middle' },
+        headStyles: { fillColor: [22, 22, 22] },
+        margin: { top: 25 },
+    });
+    
+    docPDF.save(`relatorio_concluidos_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    setIsGeneratingReport(false);
+  }
 
   const renderGroup = (group: GroupedBanks) => {
     const total = group.banks.length;
@@ -489,28 +577,34 @@ export default function BankProposalView() {
                     Controle diário da inserção de propostas nos sistemas bancários. Apenas bancos marcados com a categoria "Inserção" são exibidos aqui.
                 </CardDescription>
               </div>
-              {userRole === 'master' && (
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" disabled={isResetting}>
-                        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
-                        {isResetting ? 'Reiniciando...' : 'Reiniciar Checklist'}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**, mantendo a data da última conclusão. Isso não pode ser desfeito.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleResetChecklist}>Continuar</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-              )}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={handleGenerateReport} disabled={isGeneratingReport}>
+                  <FileDown className={`mr-2 h-4 w-4 ${isGeneratingReport ? 'animate-spin' : ''}`} />
+                  {isGeneratingReport ? 'Gerando...' : 'Gerar Relatório'}
+                </Button>
+                {userRole === 'master' && (
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" disabled={isResetting}>
+                          <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+                          {isResetting ? 'Reiniciando...' : 'Reiniciar Checklist'}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**, mantendo a data da última conclusão. Isso não pode ser desfeito.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleResetChecklist}>Continuar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                )}
+              </div>
           </div>
           <div className="mt-6 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
@@ -566,4 +660,3 @@ export default function BankProposalView() {
     </>
   );
 }
-

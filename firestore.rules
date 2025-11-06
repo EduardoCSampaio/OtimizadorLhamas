@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
 rules_version = '2';
 
 service cloud.firestore {
@@ -14,6 +12,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      allow list: if isMaster();
       allow read: if isOwner(userId);
       allow create: if request.auth.uid == userId && 
                        (request.resource.data.email == 'eduardo.campos@lhamascred.com.br' ? request.resource.data.role == 'master' : request.resource.data.role == 'user');
@@ -21,7 +20,7 @@ service cloud.firestore {
       allow delete: if false;
 
       match /bankChecklists/{checklistId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isMaster();
       }
       
       match /bankAccessDetails/{accessId} {
@@ -51,70 +50,3 @@ service cloud.firestore {
     }
   }
 }
-=======
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for user profiles and role-based access control for roles.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /roles/{roleId}: Stores role definitions.
- * - /user_roles/{userId}: Stores user role assignments.
- *
- * Key Security Decisions:
- * - Users can only access their own profile data.
- * - Role creation and management is restricted (TODO: needs implementation).
- * - User roles are assigned based on the existence of documents in the `/user_roles/{userId}` collection.
- * - List operations are allowed for users to view their roles.
- *
- * Denormalization for Authorization:
- * - User ownership is enforced by matching `request.auth.uid` against the `userId` path parameter, avoiding `get()` calls to user documents.
- */
-=======
->>>>>>> 0af121b (File changes)
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-    
-    function isMaster() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'master';
-    }
-
-    match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if request.auth.uid == userId && 
-                       (request.resource.data.email == 'eduardo.campos@lhamascred.com.br' ? request.resource.data.role == 'master' : request.resource.data.role == 'user');
-      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName']);
-      allow delete: if false;
-
-      match /bankChecklists/{checklistId} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-    
-    match /bankStatuses/{bankStatusId} {
-      allow read: if request.auth != null;
-      allow write: if isMaster();
-
-      match /cltRules/{ruleId} {
-        allow read: if request.auth != null;
-        allow write: if isMaster();
-      }
-    }
-
-    match /activityLogs/{logId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow write: if false;
-    }
-  }
-}
-<<<<<<< HEAD
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
->>>>>>> 0af121b (File changes)

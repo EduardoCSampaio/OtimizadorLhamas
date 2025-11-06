@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirebase, useFirestore } from '@/firebase';
 import Header from '@/components/layout/header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -93,7 +93,7 @@ export default function PerfilPage() {
                         {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || 'Avatar'} />}
                         <AvatarFallback className="text-3xl">
                             {user.email?.[0].toUpperCase() ?? 'U'}
-                        </AvasciiitarFallback>
+                        </AvatarFallback>
                     </Avatar>
                     <div className='flex-1'>
                         <h2 className="text-2xl font-bold">{user.displayName || 'Usuário'}</h2>

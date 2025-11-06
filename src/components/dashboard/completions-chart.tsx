@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useCollection, useUser, useFirebase } from '@/firebase';
+import { useCollection, useUser, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,7 +15,7 @@ export default function CompletionsChart() {
 
   const startOfLast7Days = useMemo(() => subDays(startOfDay(new Date()), 6), []);
 
-  const userChecklistQueryRef = useMemo(
+  const userChecklistQueryRef = useMemoFirebase(
     () =>
       firestore && user
         ? query(

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, CheckCircle2, ListTodo, Users } from 'lucide-react';
-import { useCollection, useFirebase, useUser } from '@/firebase';
+import { useCollection, useFirebase, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
 import type { BankChecklistStatus } from '@/lib/types';
 import { differenceInDays, startOfDay, endOfDay } from 'date-fns';
@@ -12,7 +12,7 @@ import { Skeleton } from '../ui/skeleton';
 export default function StatsCards() {
   const { firestore, user } = useFirebase();
 
-  const userChecklistCollectionRef = useMemo(
+  const userChecklistCollectionRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, 'users', user.uid, 'bankChecklists') : null),
     [firestore, user]
   );

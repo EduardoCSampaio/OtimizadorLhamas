@@ -31,6 +31,7 @@ import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import { createActivityLog } from '@/firebase/user-data';
 import { useUser } from '@/firebase/provider';
+import { format } from 'date-fns';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -271,7 +272,8 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         margin: { top: headerHeight }
       });
       
-      docPDF.save(`regras_clt_${bank.name.toLowerCase().replace(/ /g, '_')}.pdf`);
+      const fileName = `RegrasCLT_${bank.name.toLowerCase().replace(/ /g, '_')}_${format(new Date(), 'dd-MM-yyyy_HH-mm-ss')}.pdf`;
+      docPDF.save(fileName);
   }
 
   const loadDefaultRules = () => {

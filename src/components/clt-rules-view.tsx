@@ -28,6 +28,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -245,7 +246,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         margin: { top: headerHeight + 10 }
     });
   
-    doc.save(`regras_clt_consolidado.pdf`);
+    const fileName = `RegrasCLT_Consolidado_${format(new Date(), 'dd-MM-yyyy_HH-mm-ss')}.pdf`;
+    doc.save(fileName);
     setIsExporting(false);
   };
 

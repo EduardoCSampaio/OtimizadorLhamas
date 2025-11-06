@@ -96,8 +96,8 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
       });
   };
 
-  const handleExportAllToPDF = async () => {
-    if (!firestore || !cltBanks || cltBanks.length === 0) {
+  const handleExportAllToPDF = async (banksToExport: BankMaster[]) => {
+    if (!firestore || banksToExport.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Nenhum banco CLT para exportar',
@@ -107,8 +107,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
     }
   
     setIsExporting(true);
-
-    const banksToExport = [...cltBanks];
 
     const dataForPdf: BankDataForPDF[] = await Promise.all(
         banksToExport.map(async (bank: BankMaster) => {
@@ -268,7 +266,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
                 </CardDescription>
                 </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleExportAllToPDF} disabled={isExporting}>
+            <Button variant="outline" size="sm" onClick={() => handleExportAllToPDF(cltBanks)} disabled={isExporting}>
               <FileDown className="mr-2 h-4 w-4" />
               {isExporting ? 'Exportando...' : 'Exportar Tudo (PDF)'}
             </Button>

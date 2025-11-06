@@ -7,6 +7,9 @@ import Header from '@/components/layout/header';
 import { Skeleton } from '@/components/ui/skeleton';
 import BankManagementView from '@/components/bank-management-view';
 import { doc, getDoc } from 'firebase/firestore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import PromotoraManagementView from '@/components/promotora-management-view';
+import { Building, Briefcase } from 'lucide-react';
 
 export default function BancosPage() {
   const router = useRouter();
@@ -59,7 +62,24 @@ export default function BancosPage() {
       <Header />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         {userRole === 'master' ? (
-          <BankManagementView />
+          <Tabs defaultValue="banks">
+            <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
+              <TabsTrigger value="banks">
+                <Building className="mr-2 h-4 w-4" />
+                Gerenciar Bancos
+              </TabsTrigger>
+              <TabsTrigger value="promotoras">
+                <Briefcase className="mr-2 h-4 w-4" />
+                Gerenciar Promotoras
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="banks" className="mt-6">
+              <BankManagementView />
+            </TabsContent>
+            <TabsContent value="promotoras" className="mt-6">
+              <PromotoraManagementView />
+            </TabsContent>
+          </Tabs>
         ) : (
            <div className="text-center py-10">
                 <p className="text-lg text-muted-foreground">Você não tem permissão para acessar esta página.</p>

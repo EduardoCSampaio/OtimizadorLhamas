@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -22,8 +22,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { BankMaster, BankCategory } from '@/lib/types';
-import { Landmark, PlusCircle, Edit } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { BankMaster, BankCategory, Promotora } from '@/lib/types';
+import { Landmark, PlusCircle, Edit, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirebase, useUser } from '@/firebase';
 import {
@@ -36,10 +37,7 @@ import {
   orderBy,
   updateDoc,
 } from 'firebase/firestore';
-import {
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
 import EditBankModal from './edit-bank-modal';
 import { createActivityLog } from '@/firebase/user-data';
@@ -52,20 +50,34 @@ export default function BankManagementView() {
   const { user } = useUser();
   const { firestore } = useFirebase();
 
+  // Form state
   const [newBankName, setNewBankName] = useState('');
   const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
   const [newBankCategories, setNewBankCategories] = useState<BankCategory[]>([]);
+  const [newBankPromotoraId, setNewBankPromotoraId] = useState<string | undefined>(undefined);
+  
+  // Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBank, setSelectedBank] = useState<BankMaster | null>(null);
 
-  // Master list of all banks, ordered by name
+  // Data fetching
   const banksMasterCollectionRef = useMemoFirebase(
-    () =>
-      firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null,
+    () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
     [firestore]
   );
-  const { data: masterBanks, isLoading: isLoadingMasterBanks } =
-    useCollection<BankMaster>(banksMasterCollectionRef);
+  const { data: masterBanks, isLoading: isLoadingMasterBanks } = useCollection<BankMaster>(banksMasterCollectionRef);
+
+  const promotorasCollectionRef = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'promotoras'), orderBy('name')) : null),
+    [firestore]
+  );
+  const { data: promotoras, isLoading: isLoadingPromotoras } = useCollection<Promotora>(promotorasCollectionRef);
+
+  const promotorasMap = useMemo(() => {
+    if (!promotoras) return new Map();
+    return new Map(promotoras.map(p => [p.id, p]));
+  }, [promotoras]);
+
 
   const getCategoryBadgeVariant = (category: BankCategory) => {
     switch (category) {
@@ -73,7 +85,7 @@ export default function BankManagementView() {
       case 'FGTS': return 'secondary';
       case 'GOV': return 'outline';
       case 'INSS': return 'destructive';
-      case 'Inserção': return 'default'; // Or choose a specific color
+      case 'Inserção': return 'default';
       default: return 'secondary';
     }
   };
@@ -117,6 +129,7 @@ export default function BankManagementView() {
       name: newBankName.trim(),
       logoUrl: newBankLogoUrl.trim(),
       categories: newBankCategories,
+      promotoraId: newBankPromotoraId === 'none' ? undefined : newBankPromotoraId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -128,9 +141,12 @@ export default function BankManagementView() {
       description: `Adicionou o banco: ${newBankName.trim()}`,
     });
 
+    // Reset form
     setNewBankName('');
     setNewBankLogoUrl('');
     setNewBankCategories([]);
+    setNewBankPromotoraId(undefined);
+
     toast({
       title: 'Banco Adicionado!',
       description: `O banco ${newBankName} foi adicionado com sucesso.`,
@@ -146,18 +162,14 @@ export default function BankManagementView() {
     name: string;
     logoUrl: string;
     categories: BankCategory[];
+    promotoraId?: string;
   }) => {
     if (!firestore || !selectedBank || !user) return;
 
     const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
 
     try {
-      await updateDoc(bankMasterRef, {
-        name: updatedData.name,
-        logoUrl: updatedData.logoUrl,
-        categories: updatedData.categories,
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(bankMasterRef, { ...updatedData, updatedAt: serverTimestamp() });
 
       createActivityLog(firestore, user.email || 'unknown', {
         type: 'UPDATE',
@@ -186,8 +198,7 @@ export default function BankManagementView() {
         <CardHeader>
           <CardTitle>Adicionar Novo Banco</CardTitle>
           <CardDescription>
-            Insira os detalhes do banco para adicioná-lo ao sistema. Marque 'Inserção' para
-            que ele apareça no checklist diário.
+            Insira os detalhes do banco para adicioná-lo ao sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -203,7 +214,7 @@ export default function BankManagementView() {
                   onChange={(e) => setNewBankName(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
+               <div className="space-y-2">
                 <Label htmlFor="bank-logo">URL da Logo</Label>
                 <Input
                   id="bank-logo"
@@ -213,24 +224,40 @@ export default function BankManagementView() {
                   onChange={(e) => setNewBankLogoUrl(e.target.value)}
                 />
               </div>
-            </div>
-            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Categorias</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 p-2 border rounded-md">
-                  {allCategories.map((cat) => (
-                    <div key={cat} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`new-cat-${cat}`}
-                        checked={newBankCategories.includes(cat)}
-                        onCheckedChange={() => handleNewCategoryChange(cat)}
-                      />
-                      <Label htmlFor={`new-cat-${cat}`} className="font-normal">
-                        {cat}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
+                <Label htmlFor="promotora-select">Promotora</Label>
+                <Select value={newBankPromotoraId} onValueChange={setNewBankPromotoraId}>
+                    <SelectTrigger id="promotora-select">
+                        <SelectValue placeholder="Selecione uma promotora (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {isLoadingPromotoras ? (
+                            <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                        ) : (
+                            promotoras?.map(p => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))
+                        )}
+                    </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Categorias</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 p-4 border rounded-md">
+                {allCategories.map((cat) => (
+                  <div key={cat} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`new-cat-${cat}`}
+                      checked={newBankCategories.includes(cat)}
+                      onCheckedChange={() => handleNewCategoryChange(cat)}
+                    />
+                    <Label htmlFor={`new-cat-${cat}`} className="font-normal">
+                      {cat}
+                    </Label>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -245,7 +272,7 @@ export default function BankManagementView() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Gerenciamento de Bancos</CardTitle>
+          <CardTitle>Bancos Cadastrados</CardTitle>
           <CardDescription>
             Visualize e edite todos os bancos cadastrados no sistema.
           </CardDescription>
@@ -263,51 +290,69 @@ export default function BankManagementView() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Banco</TableHead>
+                  <TableHead>Promotora</TableHead>
                   <TableHead>Categorias</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {masterBanks.map((bank) => (
-                  <TableRow key={bank.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        {bank.logoUrl ? (
-                          <Image
-                            src={bank.logoUrl}
-                            alt={`${bank.name} logo`}
-                            width={24}
-                            height={24}
-                            className="h-6 w-6 object-contain"
-                          />
-                        ) : (
-                          <Landmark className="h-6 w-6 text-muted-foreground" />
-                        )}
-                        <span>{bank.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {bank.categories?.map((cat) => (
-                          <Badge key={cat} variant={getCategoryBadgeVariant(cat)}>
-                            {cat}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleOpenEditModal(bank)}
-                        className="h-8 w-8"
-                      >
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Editar Banco</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {masterBanks.map((bank) => {
+                    const promotora = bank.promotoraId ? promotorasMap.get(bank.promotoraId) : null;
+                    return (
+                        <TableRow key={bank.id}>
+                            <TableCell className="font-medium">
+                            <div className="flex items-center gap-3">
+                                {bank.logoUrl ? (
+                                <Image
+                                    src={bank.logoUrl}
+                                    alt={`${bank.name} logo`}
+                                    width={24}
+                                    height={24}
+                                    className="h-6 w-6 object-contain"
+                                />
+                                ) : (
+                                <Landmark className="h-6 w-6 text-muted-foreground" />
+                                )}
+                                <span>{bank.name}</span>
+                            </div>
+                            </TableCell>
+                            <TableCell>
+                                {promotora ? (
+                                    <div className="flex items-center gap-2">
+                                        {promotora.logoUrl ? (
+                                             <Image src={promotora.logoUrl} alt={`${promotora.name} logo`} width={20} height={20} className="h-5 w-5 object-contain rounded-sm"/>
+                                        ) : (
+                                            <Briefcase className="h-5 w-5 text-muted-foreground" />
+                                        )}
+                                        <span className="text-xs">{promotora.name}</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">N/A</span>
+                                )}
+                            </TableCell>
+                            <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                                {bank.categories?.map((cat) => (
+                                <Badge key={cat} variant={getCategoryBadgeVariant(cat)}>
+                                    {cat}
+                                </Badge>
+                                ))}
+                            </div>
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleOpenEditModal(bank)}
+                                className="h-8 w-8"
+                            >
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Editar Banco</span>
+                            </Button>
+                            </TableCell>
+                        </TableRow>
+                    );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -324,6 +369,7 @@ export default function BankManagementView() {
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           bank={selectedBank}
+          promotoras={promotoras || []}
           onSave={handleUpdateBank}
         />
       )}

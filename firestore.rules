@@ -26,6 +26,11 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
     }
+
+    match /promotoras/{promotoraId} {
+      allow read: if request.auth != null;
+      allow write: if isMaster();
+    }
     
     match /bankStatuses/{bankStatusId} {
       allow read: if request.auth != null;

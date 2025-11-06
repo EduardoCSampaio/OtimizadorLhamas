@@ -2,8 +2,10 @@
 
 import { doc, setDoc, Firestore, collection, serverTimestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { addDocumentNonBlocking, setDocumentNonBlocking } from './non-blocking-updates';
+import { addDocumentNonBlocking } from './non-blocking-updates';
 import type { Activity } from '@/lib/types';
+import { errorEmitter } from './error-emitter';
+import { FirestorePermissionError } from './errors';
 
 
 /**
@@ -22,8 +24,16 @@ export function createUserProfile(firestore: Firestore, user: User) {
     role: role,
   };
 
-  // Use the non-blocking update to create the user document
-  setDocumentNonBlocking(userRef, userData, { merge: false });
+  // Use setDoc with non-blocking error handling
+  setDoc(userRef, userData, { merge: false })
+    .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'create',
+            requestResourceData: userData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
 
   // Log the sign-up activity
   const logMessage = role === 'master' ? `Usuário Master ${user.email} se cadastrou.` : `Novo usuário ${user.email} se cadastrou.`;

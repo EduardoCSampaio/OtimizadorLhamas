@@ -97,21 +97,21 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
   };
 
   const handleExportAllToPDF = async () => {
-    if (!firestore || !banks || banks.length === 0) {
+    if (!firestore || !cltBanks || cltBanks.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'Nenhum banco para exportar',
-        description: 'Não há bancos cadastrados no sistema.',
+        title: 'Nenhum banco CLT para exportar',
+        description: 'Não há bancos com a categoria "CLT" para gerar o relatório.',
       });
       return;
     }
   
     setIsExporting(true);
 
-    const banksCopy: BankMaster[] = JSON.parse(JSON.stringify(banks));
+    const banksToExport: BankMaster[] = JSON.parse(JSON.stringify(cltBanks));
 
     const dataForPdf: BankDataForPDF[] = await Promise.all(
-        banksCopy.map(async (bank: BankMaster) => {
+        banksToExport.map(async (bank: BankMaster) => {
             let logoImage: HTMLImageElement | undefined = undefined;
             if (bank.logoUrl) {
                 try {
@@ -153,7 +153,6 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
         head: head,
         body: body,
         theme: 'grid',
-        avoidRowSplit: true,
         headStyles: { 
             fillColor: [22, 22, 22],
             textColor: [255, 255, 255],

@@ -196,7 +196,12 @@ export default function BankProposalView() {
     const insertionDate = status.insertionDate ? status.insertionDate.toDate() : null;
     switch(status.status) {
         case 'Pendente': 
-            return <Badge variant="outline">Pendente</Badge>;
+            return (
+                 <div className="flex flex-col">
+                    <Badge variant="outline">Pendente</Badge>
+                     {insertionDate && <span className="text-xs text-muted-foreground mt-1">Última conclusão: {format(insertionDate, "dd/MM/yy HH:mm", { locale: ptBR })}</span>}
+                </div>
+            )
         case 'Concluído': 
             return (
                 <div className="flex flex-col">
@@ -217,13 +222,17 @@ export default function BankProposalView() {
 
     const isCompleted = currentBank.status === 'Concluído';
     const newStatus = isCompleted ? 'Pendente' : 'Concluído';
-    const newInsertionDate = newStatus === 'Concluído' ? serverTimestamp() : null;
     
-    updateDocumentNonBlocking(bankDocRef, {
+    const dataToUpdate: any = {
         status: newStatus,
-        insertionDate: newInsertionDate,
         updatedAt: serverTimestamp()
-    });
+    };
+
+    if (newStatus === 'Concluído') {
+        dataToUpdate.insertionDate = serverTimestamp();
+    }
+    
+    updateDocumentNonBlocking(bankDocRef, dataToUpdate);
 
     createActivityLog(firestore, user.email || 'unknown', {
         type: newStatus === 'Concluído' ? 'STATUS_CHANGE' : 'REOPEN',
@@ -281,8 +290,6 @@ export default function BankProposalView() {
         const usersSnapshot = await getDocs(usersRef);
         const batch = writeBatch(firestore);
         
-        // This loop structure is kept for error reporting context,
-        // even though it's likely to fail on the first user that isn't the current one.
         for (const userDoc of usersSnapshot.docs) {
             const userId = userDoc.id;
             const checklistRef = collection(firestore, 'users', userId, 'bankChecklists');
@@ -293,7 +300,6 @@ export default function BankProposalView() {
                 const docRef = doc(firestore, 'users', userId, 'bankChecklists', checkDoc.id);
                 const updateData = {
                     status: 'Pendente',
-                    insertionDate: null,
                     updatedAt: serverTimestamp()
                 };
                 batch.update(docRef, updateData);
@@ -309,18 +315,16 @@ export default function BankProposalView() {
 
         toast({
             title: 'Checklist Reiniciado!',
-            description: 'Todos os itens concluídos foram redefinidos para "Pendente".'
+            description: 'Todos os itens concluídos foram redefinidos para "Pendente", mantendo o histórico da última conclusão.'
         });
 
     } catch (error: any) {
-        // Instrument with contextual error
         const permissionError = new FirestorePermissionError({
-            path: 'users', // The path that is likely failing (listing all users)
-            operation: 'list', // The operation is listing users
+            path: 'users',
+            operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
 
-        // Keep the user-facing toast as a fallback
         toast({
             variant: 'destructive',
             title: 'Falha ao Reiniciar',
@@ -455,7 +459,7 @@ export default function BankProposalView() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**. Isso não pode ser desfeito.
+                          Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**, mantendo a data da última conclusão. Isso não pode ser desfeito.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

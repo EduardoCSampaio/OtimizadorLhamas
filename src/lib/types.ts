@@ -11,7 +11,11 @@ export interface Proposal {
   phone: string;
 }
 
+<<<<<<< HEAD
 export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info' | 'Inserção';
+=======
+export type BankCategory = 'Qualibanking' | 'Credfranco' | 'Daycoval' | 'Facta' | 'C6' | 'Custom';
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
 
 export interface Promotora {
   id: string;

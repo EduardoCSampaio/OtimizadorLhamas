@@ -176,6 +176,58 @@
         "userEmail",
         "type"
       ]
+    },
+    "BankAccessDetails": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BankAccessDetails",
+      "type": "object",
+      "description": "Stores user-specific, private access details for a bank, like links and credentials.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier, same as the bankId from bankStatuses."
+        },
+        "bankId": {
+          "type": "string",
+          "description": "The ID of the bank this access detail belongs to."
+        },
+        "link": {
+          "type": "string",
+          "description": "The URL for the bank's portal."
+        },
+        "logins": {
+          "type": "array",
+          "description": "A list of login credentials for the bank.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "The type of login, e.g., 'Master', 'Autorizador'."
+              },
+              "username": {
+                "type": "string",
+                "description": "The username for this login."
+              },
+              "password": {
+                "type": "string",
+                "description": "The password for this login. Stored in plaintext."
+              }
+            },
+            "required": ["type", "username", "password"]
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last update."
+        }
+      },
+      "required": [
+        "id",
+        "bankId",
+        "updatedAt"
+      ]
     }
   },
   "auth": {
@@ -199,7 +251,41 @@
               "description": "The unique identifier for the user."
             }
           ]
-        }
+        },
+        "subcollections": [
+          {
+            "path": "/bankChecklists/{checklistId}",
+            "definition": {
+              "entityName": "BankStatus",
+              "schema": {
+                "$ref": "#/backend/entities/BankStatus"
+              },
+              "description": "Stores the user-specific checklist status for each bank. Each user can only access their own checklist.",
+              "params": [
+                {
+                  "name": "checklistId",
+                  "description": "The unique identifier for the bank checklist entry, likely matching the bankStatusId."
+                }
+              ]
+            }
+          },
+          {
+            "path": "/bankAccessDetails/{accessId}",
+            "definition": {
+              "entityName": "BankAccessDetails",
+              "schema": {
+                "$ref": "#/backend/entities/BankAccessDetails"
+              },
+              "description": "Stores user-specific, private access details for each bank. A user can only access their own details.",
+              "params": [
+                {
+                  "name": "accessId",
+                  "description": "The unique identifier for the bank access detail entry, matching the bankStatusId."
+                }
+              ]
+            }
+          }
+        ]
       },
       {
         "path": "/bankStatuses/{bankStatusId}",
@@ -234,26 +320,6 @@
             }
           }
         ]
-      },
-      {
-        "path": "/users/{userId}/bankChecklists/{checklistId}",
-        "definition": {
-          "entityName": "BankStatus",
-          "schema": {
-            "$ref": "#/backend/entities/BankStatus"
-          },
-          "description": "Stores the user-specific checklist status for each bank. Each user can only access their own checklist.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "checklistId",
-              "description": "The unique identifier for the bank checklist entry, likely matching the bankStatusId."
-            }
-          ]
-        }
       },
       {
         "path": "/activityLogs/{logId}",

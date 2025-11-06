@@ -44,15 +44,18 @@ import {
 } from "@/components/ui/alert-dialog"
 =======
 import { banks, bankCategories } from '@/lib/data';
-import type { Proposal, BankStatus, BankCategory } from '@/lib/types';
+import type { BankStatus, BankCategory } from '@/lib/types';
 import { CheckCircle, History } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 >>>>>>> 72b0cd5 (Não é bem como deveria ser, teria que ter os bancos anotados, a data que)
 
+<<<<<<< HEAD
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
+=======
+>>>>>>> bd84b82 (Na realidade seria apenas uma tela com check list diario, ele todo dia v)
 export default function BankProposalView() {
   const { toast } = useToast();
   const { user } = useUser();
@@ -261,7 +264,7 @@ export default function BankProposalView() {
         <TableHeader>
           <TableRow>
             <TableHead>Banco</TableHead>
-            <TableHead>Status e Data</TableHead>
+            <TableHead>Status e Data da Última Atualização</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead className="text-right">Ação</TableHead>
           </TableRow>
@@ -286,7 +289,7 @@ export default function BankProposalView() {
                   {bank.status === 'Pendente' ? (
                     <>
                       <CheckCircle className="h-4 w-4 mr-2"/>
-                      Marcar como Concluído
+                      Concluir
                     </>
                   ) : (
                     <>
@@ -465,11 +468,9 @@ export default function BankProposalView() {
 =======
     <Card>
       <CardHeader>
-        <CardTitle>2. Controlar Inserções</CardTitle>
+        <CardTitle>Checklist Diário de Inserções</CardTitle>
         <CardDescription>
-          Marque os bancos onde a proposta de{' '}
-          <span className="font-semibold text-primary">{proposal.clientName}</span>{' '}
-          já foi inserida.
+          Controle diário da inserção de propostas nos sistemas bancários.
         </CardDescription>
       </CardHeader>
       <CardContent>

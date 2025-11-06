@@ -21,6 +21,10 @@ service cloud.firestore {
       match /bankChecklists/{checklistId} {
         allow read, write: if isOwner(userId);
       }
+      
+      match /bankAccessDetails/{accessId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     match /bankStatuses/{bankStatusId} {

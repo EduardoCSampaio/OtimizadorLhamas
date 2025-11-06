@@ -4,6 +4,7 @@ import {
   Banknote,
   Bell,
   Building2,
+  KeyRound,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -121,6 +122,10 @@ export default function Header() {
                 <DropdownMenuItem onClick={() => router.push('/perfil')}>
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Perfil</span>
+                </DropdownMenuItem>
+                 <DropdownMenuItem onClick={() => router.push('/meus-acessos')}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  <span>Meus Acessos</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />

@@ -36,6 +36,7 @@ import {
   where,
   orderBy,
   updateDoc,
+  deleteField,
 } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useMemoFirebase } from '@/firebase/provider';
@@ -185,8 +186,20 @@ export default function BankManagementView() {
     const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
 
     try {
-      // The promotoraId can be undefined to remove it.
-      await updateDoc(bankMasterRef, { ...updatedData, updatedAt: serverTimestamp() });
+      const dataToUpdate: any = {
+        name: updatedData.name,
+        logoUrl: updatedData.logoUrl,
+        categories: updatedData.categories,
+        updatedAt: serverTimestamp()
+      };
+
+      if (updatedData.promotoraId) {
+        dataToUpdate.promotoraId = updatedData.promotoraId;
+      } else {
+        dataToUpdate.promotoraId = deleteField();
+      }
+
+      await updateDoc(bankMasterRef, dataToUpdate);
 
       createActivityLog(firestore, user.email || 'unknown', {
         type: 'UPDATE',

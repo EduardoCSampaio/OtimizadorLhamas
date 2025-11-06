@@ -32,7 +32,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [categories, setCategories] = useState<BankCategory[]>([]);
-  const [promotoraId, setPromotoraId] = useState<string>('none');
+  const [promotoraId, setPromotoraId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
       setName(bank.name);
       setLogoUrl(bank.logoUrl || '');
       setCategories(bank.categories || []);
-      setPromotoraId(bank.promotoraId || 'none');
+      setPromotoraId(bank.promotoraId);
     }
   }, [bank]);
 
@@ -116,7 +116,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
             <Label htmlFor="promotora-select" className="text-right">
               Promotora
             </Label>
-            <Select value={promotoraId} onValueChange={setPromotoraId}>
+            <Select value={promotoraId || 'none'} onValueChange={setPromotoraId}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Selecione uma promotora" />
               </SelectTrigger>

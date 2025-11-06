@@ -21,7 +21,6 @@ export interface BankMaster {
   updatedAt: Timestamp;
 }
 
-<<<<<<< HEAD
 // Represents the user-specific checklist status for a bank
 export interface BankChecklistStatus {
   id: string; // This ID should correspond to the BankMaster ID
@@ -36,12 +35,6 @@ export interface CLTRule {
   ruleValue: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-=======
-export interface BankStatus extends Bank {
-  status: 'Pendente' | 'Concluído';
-  insertionDate?: string;
-  priority: 'Alta' | 'Média' | 'Baixa';
->>>>>>> 72b0cd5 (Não é bem como deveria ser, teria que ter os bancos anotados, a data que)
 }
 
 export interface PriorityTask {
@@ -65,4 +58,19 @@ export interface UserProfile {
     email: string;
     displayName: string;
     role: 'master' | 'user';
+}
+
+export interface LoginCredential {
+  type: string;
+  username: string;
+  password?: string;
+}
+
+// Represents the user-specific, private access details for a bank
+export interface BankAccessDetails {
+  id: string; // This ID should correspond to the BankMaster ID
+  bankId: string;
+  link?: string;
+  logins?: LoginCredential[];
+  updatedAt: Timestamp;
 }

@@ -1,12 +1,16 @@
 "use client"
 
+<<<<<<< HEAD
 import { useAuth, useFirebase, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+=======
+>>>>>>> bd84b82 (Na realidade seria apenas uma tela com check list diario, ele todo dia v)
 import Header from '@/components/layout/header';
 import BankProposalView from '@/components/bank-proposal-view';
 import PriorityTasks from '@/components/priority-tasks';
 import ActivityLog from '@/components/activity-log';
+<<<<<<< HEAD
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
@@ -38,6 +42,10 @@ export default function Home() {
     );
   }
 
+=======
+
+export default function Home() {
+>>>>>>> bd84b82 (Na realidade seria apenas uma tela com check list diario, ele todo dia v)
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header />

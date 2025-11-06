@@ -330,8 +330,8 @@ export default function BankProposalView() {
         <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center justify-between w-full pr-4">
                 <div className="flex items-center gap-4">
-                    {group.promotora ? (
-                       <Image src={group.promotora.logoUrl || ''} alt={`${group.promotora.name} logo`} width={32} height={32} className="h-8 w-8 object-contain rounded-md" />
+                    {group.promotora?.logoUrl ? (
+                       <Image src={group.promotora.logoUrl} alt={`${group.promotora.name} logo`} width={32} height={32} className="h-8 w-8 object-contain rounded-md" />
                     ) : (
                        <div className="h-8 w-8 flex items-center justify-center bg-muted rounded-md">
                          <Building className="h-5 w-5 text-muted-foreground" />

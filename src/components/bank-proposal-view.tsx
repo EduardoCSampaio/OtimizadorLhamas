@@ -17,10 +17,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+<<<<<<< HEAD
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { BankChecklistStatus, BankMaster, BankCategory, UserProfile } from '@/lib/types';
 import { CheckCircle, History, Landmark, RefreshCw } from 'lucide-react';
+=======
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import type { BankStatus } from '@/lib/types';
+import { CheckCircle, History, Landmark, PlusCircle } from 'lucide-react';
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,6 +54,7 @@ type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' 
 
 export default function BankProposalView() {
   const { toast } = useToast();
+<<<<<<< HEAD
   const { user } = useUser();
   const { firestore } = useFirebase();
   const [userRole, setUserRole] = useState<'master' | 'user' | null>(null);
@@ -72,6 +81,52 @@ export default function BankProposalView() {
       getDoc(userDocRef).then(docSnap => {
         if (docSnap.exists()) {
           setUserRole(docSnap.data().role);
+=======
+  const [bankStatuses, setBankStatuses] = useState<BankStatus[]>([]);
+  const [newBankName, setNewBankName] = useState('');
+
+  const handleAddBank = () => {
+    if (newBankName.trim() === '') {
+        toast({
+            variant: 'destructive',
+            title: 'Erro',
+            description: 'O nome do banco não pode estar vazio.',
+        });
+        return;
+    }
+
+    const newBank: BankStatus = {
+      id: newBankName.toLowerCase().replace(/\s/g, ''),
+      name: newBankName,
+      category: 'Custom', // Default category
+      icon: Landmark, // Default icon
+      status: 'Pendente',
+      priority: 'Média',
+    };
+
+    setBankStatuses(prev => [...prev, newBank]);
+    setNewBankName('');
+    toast({
+      title: 'Banco Adicionado!',
+      description: `O banco ${newBankName} foi adicionado à lista.`,
+    });
+  };
+
+  const handleToggleStatus = (bankId: string) => {
+    setBankStatuses(prev =>
+      prev.map(b => {
+        if (b.id === bankId) {
+          const isCompleted = b.status === 'Concluído';
+          const newStatus = isCompleted ? 'Pendente' : 'Concluído';
+          const newDate = isCompleted ? undefined : format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+          
+          toast({
+              title: `Status Alterado!`,
+              description: `A inserção no banco ${b.name} foi marcada como ${newStatus.toLowerCase()}.`,
+          });
+
+          return { ...b, status: newStatus, insertionDate: newDate };
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
         }
       });
     }
@@ -180,6 +235,7 @@ export default function BankProposalView() {
     }
   }
 
+<<<<<<< HEAD
   const handleToggleStatus = (bankId: string) => {
     if (!user || !firestore) return;
     
@@ -302,17 +358,58 @@ export default function BankProposalView() {
             </div>
           }
           {!isLoading && combinedBankData.length > 0 ? (
+=======
+  return (
+    <>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Adicionar Banco</CardTitle>
+          <CardDescription>
+            Insira o nome do banco para adicioná-lo à sua lista de checklist.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex w-full max-w-sm items-center space-x-2">
+            <Input 
+              type="text" 
+              placeholder="Nome do Banco" 
+              value={newBankName}
+              onChange={(e) => setNewBankName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddBank()}
+            />
+            <Button onClick={handleAddBank}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Adicionar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Checklist Diário de Inserções</CardTitle>
+          <CardDescription>
+            Controle diário da inserção de propostas nos sistemas bancários.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {bankStatuses.length > 0 ? (
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Banco</TableHead>
+<<<<<<< HEAD
                   <TableHead>Outras Categorias</TableHead>
+=======
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
                   <TableHead>Status e Data da Última Atualização</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+<<<<<<< HEAD
                 {combinedBankData.map(bank => (
                   <TableRow key={bank.id}>
                     <TableCell className="font-medium">
@@ -331,12 +428,23 @@ export default function BankProposalView() {
                           <Badge key={cat} variant={getCategoryBadgeVariant(cat)}>{cat}</Badge>
                         ))}
                       </div>
+=======
+                {bankStatuses.map(bank => (
+                  <TableRow key={bank.id}>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <bank.icon className="h-4 w-4 text-muted-foreground" />
+                      {bank.name}
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
                     </TableCell>
                     <TableCell>{renderStatus(bank)}</TableCell>
                     <TableCell>
                       <Badge variant={getPriorityBadgeVariant(bank.priority)}>{bank.priority}</Badge>
                     </TableCell>
+<<<<<<< HEAD
                     <TableCell className="text-right space-x-2">
+=======
+                    <TableCell className="text-right">
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
                       <Button 
                           variant="ghost" 
                           size="sm" 
@@ -360,7 +468,11 @@ export default function BankProposalView() {
               </TableBody>
             </Table>
           ) : (
+<<<<<<< HEAD
             !isLoading && <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco de inserção encontrado. Vá para a página 'Bancos' para adicionar bancos e marcá-los com a categoria "Inserção".</p>
+=======
+            <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco adicionado ainda. Comece adicionando um acima.</p>
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 // This file is no longer in use, as data is now fetched dynamically from Firestore.
 // It is kept for reference but can be safely removed in the future.
 export {};
@@ -17,6 +18,10 @@ export const banks: Bank[] = [
   { id: 'facta', name: 'Facta Financeira', category: 'Facta', icon: Landmark },
   { id: 'c6', name: 'C6 Bank', category: 'C6', icon: Landmark },
 ];
+=======
+import type { PriorityTask, Activity } from './types';
+import { CheckCircle2, UserPlus, History } from 'lucide-react';
+>>>>>>> 226043a (Ok, faz uma parte escrita "Adicionar Banco" irei adicionar um por um, po)
 
 export const priorityTasks: PriorityTask[] = [
   { id: '1', title: 'Finalizar inserção BMG', client: 'Ana Silva', deadline: 'Hoje, 17:00', priority: 'Alta' },

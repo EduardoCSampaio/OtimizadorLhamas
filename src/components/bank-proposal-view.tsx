@@ -25,8 +25,10 @@ import {
 } from "@/components/ui/accordion"
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BankChecklistStatus, BankMaster, BankCategory, Promotora } from '@/lib/types';
-import { CheckCircle, History, Landmark, RefreshCw, Building } from 'lucide-react';
+import { CheckCircle, History, Landmark, RefreshCw, Building, Search, Filter } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -47,6 +49,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { cn } from '@/lib/utils';
 
 type CombinedBankStatus = BankMaster & BankChecklistStatus & { priority: 'Alta' | 'Média' | 'Baixa' };
 
@@ -55,11 +58,18 @@ type GroupedBanks = {
   banks: CombinedBankStatus[];
 }
 
+const allCategories: BankCategory[] = ['Inserção', 'CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
+
 export default function BankProposalView() {
   const { toast } = useToast();
   const { user } = useUser();
   const { firestore } = useFirebase();
   const [userRole, setUserRole] = useState<'master' | 'user' | null>(null);
+  
+  // Filter states
+  const [filterStatus, setFilterStatus] = useState<'all' | 'Pendente' | 'Concluído'>('all');
+  const [filterCategory, setFilterCategory] = useState<BankCategory | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const banksMasterCollectionRef = useMemoFirebase(
       () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
@@ -105,7 +115,7 @@ export default function BankProposalView() {
         const batch = writeBatch(firestore);
         banksToAdd.forEach(bank => {
             const checklistRef = doc(firestore, 'users', user.uid, 'bankChecklists', bank.id);
-            const newChecklistItem: Omit<BankChecklistStatus, 'id'> = {
+            const newChecklistItem: Omit<BankChecklistStatus, 'id' | 'lastCompletedAt' | 'reopenedAt'> = {
                 status: 'Pendente',
                 insertionDate: null,
                 updatedAt: serverTimestamp()
@@ -123,22 +133,40 @@ export default function BankProposalView() {
     }
 
     const checklistMap = new Map(userChecklist?.map(item => [item.id, item]));
-    const insertionBanks = masterBanks.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('Inserção'));
-
-    const combined = insertionBanks.map(bank => {
-      const checklistStatus = checklistMap.get(bank.id);
-      return {
-        ...bank,
-        id: bank.id,
-        status: checklistStatus?.status || 'Pendente',
-        insertionDate: checklistStatus?.insertionDate || null,
-        updatedAt: checklistStatus?.updatedAt || bank.updatedAt,
-        priority: calculatePriority(checklistStatus?.status || 'Pendente', checklistStatus?.insertionDate),
-      };
+    
+    // 1. Get only insertion banks
+    let filteredBanks = masterBanks.filter(bank => Array.isArray(bank.categories) && bank.categories.includes('Inserção'));
+    
+    // 2. Combine with user-specific data
+    let combined = filteredBanks.map(bank => {
+        const checklistStatus = checklistMap.get(bank.id);
+        const status = checklistStatus?.status || 'Pendente';
+        const insertionDate = checklistStatus?.insertionDate || null;
+        return {
+            ...bank,
+            id: bank.id,
+            status: status,
+            insertionDate: insertionDate,
+            lastCompletedAt: checklistStatus?.lastCompletedAt || null,
+            reopenedAt: checklistStatus?.reopenedAt || null,
+            updatedAt: checklistStatus?.updatedAt || bank.updatedAt,
+            priority: calculatePriority(status, insertionDate),
+        };
     });
 
+    // 3. Apply filters
+    if (filterStatus !== 'all') {
+      combined = combined.filter(bank => bank.status === filterStatus);
+    }
+    if (filterCategory !== 'all') {
+      combined = combined.filter(bank => bank.categories.includes(filterCategory));
+    }
+    if (searchTerm) {
+      combined = combined.filter(bank => bank.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+    
+    // 4. Group by promotora
     const groups: Record<string, GroupedBanks> = {};
-
     combined.forEach(bank => {
       const promotoraId = bank.promotoraId || 'independent';
       if (!groups[promotoraId]) {
@@ -148,16 +176,20 @@ export default function BankProposalView() {
       groups[promotoraId].banks.push(bank);
     });
 
-    const sortedGroups = Object.values(groups).sort((a, b) => {
+    // Filter out groups with no banks after filtering
+    const finalGroups = Object.values(groups).filter(g => g.banks.length > 0);
+
+    // 5. Sort groups
+    finalGroups.sort((a, b) => {
         if (a.promotora && b.promotora) return a.promotora.name.localeCompare(b.promotora.name);
-        if (a.promotora) return -1; // a (promotora) comes before b (independent)
-        if (b.promotora) return 1;  // b (promotora) comes before a (independent)
+        if (a.promotora) return -1;
+        if (b.promotora) return 1;
         return 0;
     });
 
-    setGroupedBankData(sortedGroups);
+    setGroupedBankData(finalGroups);
 
-  }, [masterBanks, userChecklist, promotoras, isLoadingMasterBanks, isLoadingChecklist, isLoadingPromotoras]);
+  }, [masterBanks, userChecklist, promotoras, isLoadingMasterBanks, isLoadingChecklist, isLoadingPromotoras, filterStatus, filterCategory, searchTerm]);
 
 
   const calculatePriority = (status: 'Pendente' | 'Concluído', insertionDate: any): 'Alta' | 'Média' | 'Baixa' => {
@@ -193,20 +225,22 @@ export default function BankProposalView() {
 
 
   const renderStatus = (status: CombinedBankStatus) => {
-    const insertionDate = status.insertionDate ? status.insertionDate.toDate() : null;
+    const dateToShow = status.status === 'Concluído' ? status.insertionDate : status.lastCompletedAt;
+    const date = dateToShow?.toDate ? dateToShow.toDate() : null;
+
     switch(status.status) {
         case 'Pendente': 
             return (
                  <div className="flex flex-col">
                     <Badge variant="outline">Pendente</Badge>
-                     {insertionDate && <span className="text-xs text-muted-foreground mt-1">Última conclusão: {format(insertionDate, "dd/MM/yy HH:mm", { locale: ptBR })}</span>}
+                     {date && <span className="text-xs text-muted-foreground mt-1">Última conclusão: {format(date, "dd/MM/yy HH:mm", { locale: ptBR })}</span>}
                 </div>
             )
         case 'Concluído': 
             return (
                 <div className="flex flex-col">
                     <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle className="mr-2 h-3 w-3"/>Concluído</Badge>
-                    {insertionDate && <span className="text-xs text-muted-foreground mt-1">{format(insertionDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
+                    {date && <span className="text-xs text-muted-foreground mt-1">{format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>}
                 </div>
             );
     }
@@ -229,10 +263,15 @@ export default function BankProposalView() {
     };
 
     if (newStatus === 'Concluído') {
-        dataToUpdate.insertionDate = serverTimestamp();
+      dataToUpdate.insertionDate = serverTimestamp();
+      dataToUpdate.lastCompletedAt = serverTimestamp();
+    } else {
+      // It's being reopened
+      dataToUpdate.reopenedAt = serverTimestamp();
+      dataToUpdate.insertionDate = null; // Clear current insertion date
     }
     
-    updateDocumentNonBlocking(bankDocRef, dataToUpdate);
+    updateDocumentNonBlocking(bankDocRef, dataToUpdate, { merge: true });
 
     createActivityLog(firestore, user.email || 'unknown', {
         type: newStatus === 'Concluído' ? 'STATUS_CHANGE' : 'REOPEN',
@@ -260,6 +299,7 @@ export default function BankProposalView() {
         batch.update(bankDocRef, {
             status: 'Concluído',
             insertionDate: serverTimestamp(),
+            lastCompletedAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
     });
@@ -300,6 +340,8 @@ export default function BankProposalView() {
                 const docRef = doc(firestore, 'users', userId, 'bankChecklists', checkDoc.id);
                 const updateData = {
                     status: 'Pendente',
+                    insertionDate: null,
+                    reopenedAt: serverTimestamp(),
                     updatedAt: serverTimestamp()
                 };
                 batch.update(docRef, updateData);
@@ -440,7 +482,7 @@ export default function BankProposalView() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
                 <CardTitle>Checklist Diário de Inserções</CardTitle>
                 <CardDescription className="mt-2">
@@ -470,6 +512,40 @@ export default function BankProposalView() {
                   </AlertDialog>
               )}
           </div>
+          <div className="mt-6 flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por nome do banco..."
+                className="w-full rounded-lg bg-background pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                </div>
+                <div className='flex gap-2'>
+                    <Button variant={filterStatus === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilterStatus('all')}>Todos</Button>
+                    <Button variant={filterStatus === 'Pendente' ? 'default' : 'outline'} size="sm" onClick={() => setFilterStatus('Pendente')}>Pendentes</Button>
+                    <Button variant={filterStatus === 'Concluído' ? 'default' : 'outline'} size="sm" onClick={() => setFilterStatus('Concluído')}>Concluídos</Button>
+                </div>
+            </div>
+             <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value as BankCategory | 'all')}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filtrar por Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Categorias</SelectItem>
+                {allCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? ( 
@@ -483,10 +559,11 @@ export default function BankProposalView() {
               {groupedBankData.map(group => renderGroup(group))}
             </Accordion>
           ) : (
-            <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco de inserção encontrado. Vá para a página 'Bancos' para adicionar bancos e marcá-los com a categoria "Inserção".</p>
+            <p className="text-muted-foreground text-sm p-4 text-center">Nenhum banco encontrado com os filtros aplicados. Tente uma busca diferente.</p>
           )}
         </CardContent>
       </Card>
     </>
   );
 }
+

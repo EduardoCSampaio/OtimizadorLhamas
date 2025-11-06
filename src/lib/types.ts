@@ -37,6 +37,8 @@ export interface BankChecklistStatus {
   id: string; // This ID should correspond to the BankMaster ID
   status: 'Pendente' | 'Concluído';
   insertionDate: Timestamp | null; // When it was last marked as 'Concluído'
+  lastCompletedAt?: Timestamp | null; // Stores the date of the last completion
+  reopenedAt?: Timestamp | null; // Stores the date it was last reopened
   updatedAt: Timestamp;
 }
 
@@ -85,3 +87,4 @@ export interface BankAccessDetails {
   logins?: LoginCredential[];
   updatedAt: Timestamp;
 }
+

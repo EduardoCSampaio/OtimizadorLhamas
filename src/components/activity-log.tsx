@@ -24,15 +24,7 @@ import { ptBR } from 'date-fns/locale';
 import { Skeleton } from './ui/skeleton';
 import { useMemoFirebase } from '@/firebase/provider';
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 const typeToIconMap = {
-=======
-const typeToIcon = {
->>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
-=======
-const typeToIconMap = {
->>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
   CREATE: PlusCircle,
   UPDATE: FilePenLine,
   DELETE: Trash2,
@@ -41,18 +33,8 @@ const typeToIconMap = {
   REOPEN: History,
 };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 const ActivityIcon = ({ type }: { type: Activity['type'] }) => {
   const Icon = typeToIconMap[type] || FilePenLine;
-=======
-const ActivityIcon = ({ type }: { type: Activity['type'] | 'REOPEN' }) => {
-  const Icon = typeToIcon[type] || FilePenLine;
->>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
-=======
-const ActivityIcon = ({ type }: { type: Activity['type'] }) => {
-  const Icon = typeToIconMap[type] || FilePenLine;
->>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
   return <Icon className="h-4 w-4 text-muted-foreground" />;
 };
 

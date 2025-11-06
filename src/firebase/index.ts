@@ -48,11 +48,4 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-<<<<<<< HEAD
-<<<<<<< HEAD
 export * from './user-data';
-=======
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
-export * from './user-data';
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)

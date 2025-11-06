@@ -15,24 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Banknote } from 'lucide-react';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { createUserProfile, logUserSignIn } from '@/firebase/user-data';
 import { doc, getDoc } from 'firebase/firestore';
 
-=======
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
->>>>>>> 0af121b (File changes)
-=======
-import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { createUserProfile, logUserSignIn } from '@/firebase/user-data';
-import { doc, getDoc } from 'firebase/firestore';
-
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -40,14 +27,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
-<<<<<<< HEAD
-<<<<<<< HEAD
   const firestore = useFirestore();
-=======
->>>>>>> 0af121b (File changes)
-=======
-  const firestore = useFirestore();
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
   const { toast } = useToast();
 
   const handleSignIn = async () => {
@@ -57,51 +37,22 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-<<<<<<< HEAD
-<<<<<<< HEAD
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-=======
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-<<<<<<< HEAD
-        // Verifica se o perfil do usuário existe e cria se não existir
->>>>>>> fb41279 (Aparentemente, já fiz o cadastro tudo certinho antes dessa opção, então,)
-=======
->>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
           await createUserProfile(firestore, user);
         }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
         
         logUserSignIn(firestore, user.email);
 
-=======
-        await signInWithEmailAndPassword(auth, email, password);
->>>>>>> 0af121b (File changes)
-=======
-
->>>>>>> fb41279 (Aparentemente, já fiz o cadastro tudo certinho antes dessa opção, então,)
         toast({ title: 'Sucesso', description: 'Login realizado com sucesso!' });
         router.push('/');
     } catch (error: any) {
         let errorMessage = 'Ocorreu um erro ao fazer login.';
-<<<<<<< HEAD
-<<<<<<< HEAD
         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-=======
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
->>>>>>> 0af121b (File changes)
-=======
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
             errorMessage = 'Email ou senha inválidos.';
         } else if (error.code === 'auth/invalid-email') {
             errorMessage = 'O formato do email é inválido.';
@@ -113,14 +64,6 @@ export default function LoginPage() {
     }
   };
   
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-  // This is a simplified sign-up for demonstration. 
-  // In a real app, you'd have a separate sign-up page.
->>>>>>> 0af121b (File changes)
-=======
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
   const handleSignUp = async () => {
     if (!email || !password) {
         toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, preencha email e senha para se cadastrar.' });
@@ -132,17 +75,8 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-<<<<<<< HEAD
-<<<<<<< HEAD
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await createUserProfile(firestore, userCredential.user);
-=======
-        await createUserWithEmailAndPassword(auth, email, password);
->>>>>>> 0af121b (File changes)
-=======
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await createUserProfile(firestore, userCredential.user);
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
         toast({ title: 'Cadastro realizado!', description: 'Você foi cadastrado e logado com sucesso.' });
         router.push('/');
     } catch (error: any) {

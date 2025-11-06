@@ -32,7 +32,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [categories, setCategories] = useState<BankCategory[]>([]);
-  const [promotoraId, setPromotoraId] = useState<string | undefined>(undefined);
+  const [promotoraId, setPromotoraId] = useState<string>('none');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -71,7 +71,12 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
     }
 
     setIsSaving(true);
-    await onSave({ name, logoUrl, categories, promotoraId: promotoraId === 'none' ? undefined : promotoraId });
+    await onSave({ 
+        name, 
+        logoUrl, 
+        categories, 
+        promotoraId: promotoraId === 'none' ? undefined : promotoraId 
+    });
     setIsSaving(false);
   };
 

@@ -185,6 +185,7 @@ export default function BankManagementView() {
     const bankMasterRef = doc(firestore, 'bankStatuses', selectedBank.id);
 
     try {
+      // The promotoraId can be undefined to remove it.
       await updateDoc(bankMasterRef, { ...updatedData, updatedAt: serverTimestamp() });
 
       createActivityLog(firestore, user.email || 'unknown', {

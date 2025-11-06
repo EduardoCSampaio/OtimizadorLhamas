@@ -1,4 +1,6 @@
-import type { LucideIcon } from "lucide-react";
+'use client';
+
+import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Proposal {
@@ -11,12 +13,21 @@ export interface Proposal {
 
 export type BankCategory = 'CLT' | 'FGTS' | 'GOV' | 'INSS' | 'Sem Info' | 'Inserção';
 
+export interface Promotora {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 // Represents a master bank entry
 export interface BankMaster {
   id: string;
   name: string;
   logoUrl: string;
   categories: BankCategory[];
+  promotoraId?: string; // Optional: ID of the associated Promotora
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

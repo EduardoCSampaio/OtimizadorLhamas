@@ -13,23 +13,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { BankMaster, BankCategory } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { BankMaster, BankCategory, Promotora } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface EditBankModalProps {
   isOpen: boolean;
   onClose: () => void;
   bank: BankMaster;
-  onSave: (updatedData: { name: string, logoUrl: string, categories: BankCategory[] }) => Promise<void>;
+  promotoras: Promotora[];
+  onSave: (updatedData: { name: string, logoUrl: string, categories: BankCategory[], promotoraId?: string }) => Promise<void>;
 }
 
 const allCategories: BankCategory[] = ['Inserção', 'CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
 
-export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBankModalProps) {
+export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSave }: EditBankModalProps) {
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [categories, setCategories] = useState<BankCategory[]>([]);
+  const [promotoraId, setPromotoraId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -37,6 +40,7 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
       setName(bank.name);
       setLogoUrl(bank.logoUrl || '');
       setCategories(bank.categories || []);
+      setPromotoraId(bank.promotoraId || 'none');
     }
   }, [bank]);
 
@@ -67,7 +71,7 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
     }
 
     setIsSaving(true);
-    await onSave({ name, logoUrl, categories });
+    await onSave({ name, logoUrl, categories, promotoraId: promotoraId === 'none' ? undefined : promotoraId });
     setIsSaving(false);
   };
 
@@ -77,7 +81,7 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
         <DialogHeader>
           <DialogTitle>Editar Banco: {bank.name}</DialogTitle>
           <DialogDescription>
-            Atualize o nome, a URL da logo e as categorias do banco.
+            Atualize os detalhes do banco.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
@@ -102,6 +106,22 @@ export default function EditBankModal({ isOpen, onClose, bank, onSave }: EditBan
               onChange={(e) => setLogoUrl(e.target.value)}
               className="col-span-3"
             />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="promotora-select" className="text-right">
+              Promotora
+            </Label>
+            <Select value={promotoraId} onValueChange={setPromotoraId}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Selecione uma promotora" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                {promotoras.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-4 items-start gap-4">
             <Label className="text-right pt-2">

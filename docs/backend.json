@@ -34,6 +34,37 @@
         "role"
       ]
     },
+    "Promotora": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Promotora",
+      "type": "object",
+      "description": "Represents a promoter or intermediary that banks can be associated with.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Promotora."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the promotora."
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL for the promotora's logo."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the promotora was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last update."
+        }
+      },
+      "required": ["id", "name", "createdAt", "updatedAt"]
+    },
     "BankStatus": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BankStatus",
@@ -47,6 +78,10 @@
         "logoUrl": {
           "type": "string",
           "description": "URL for the bank's logo."
+        },
+        "promotoraId": {
+            "type": "string",
+            "description": "Optional foreign key to the Promotora entity."
         },
         "categories": {
           "type": "array",
@@ -286,6 +321,22 @@
             }
           }
         ]
+      },
+      {
+        "path": "/promotoras/{promotoraId}",
+        "definition": {
+          "entityName": "Promotora",
+          "schema": {
+            "$ref": "#/backend/entities/Promotora"
+          },
+          "description": "Stores the master list of promotoras. Writable only by 'master' role, readable by all authenticated users.",
+          "params": [
+            {
+              "name": "promotoraId",
+              "description": "The unique identifier for the promotora."
+            }
+          ]
+        }
       },
       {
         "path": "/bankStatuses/{bankStatusId}",

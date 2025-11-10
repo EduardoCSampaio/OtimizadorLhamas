@@ -276,11 +276,11 @@ export default function BankProposalView() {
 
     if (newStatus === 'Concluído') {
       dataToUpdate.insertionDate = serverTimestamp();
-      dataToUpdate.lastCompletedAt = serverTimestamp();
+      dataToUpdate.lastCompletedAt = serverTimestamp(); // Always update this on completion
     } else {
       // It's being reopened
       dataToUpdate.reopenedAt = serverTimestamp();
-      dataToUpdate.insertionDate = null; // Clear current insertion date
+      dataToUpdate.insertionDate = null; // Clear current insertion date for this cycle
     }
     
     updateDocumentNonBlocking(bankDocRef, dataToUpdate, { merge: true });
@@ -350,9 +350,10 @@ export default function BankProposalView() {
                 const docRef = doc(firestore, 'users', userId, 'bankChecklists', checkDoc.id);
                 const updateData = {
                     status: 'Pendente',
-                    insertionDate: null,
+                    insertionDate: null, // Clear for the new cycle
                     reopenedAt: serverTimestamp(),
                     updatedAt: serverTimestamp()
+                    // lastCompletedAt is NOT cleared
                 };
                 batch.update(docRef, updateData);
             });
@@ -367,7 +368,7 @@ export default function BankProposalView() {
 
         toast({
             title: 'Checklist Reiniciado!',
-            description: 'Todos os itens concluídos foram redefinidos para "Pendente", mantendo o histórico da última conclusão.'
+            description: 'Todos os itens concluídos foram redefinidos para "Pendente" para o novo ciclo.'
         });
 
     } catch (error: any) {
@@ -625,7 +626,7 @@ export default function BankProposalView() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**, mantendo a data da última conclusão. Isso não pode ser desfeito.
+                            Esta ação irá redefinir o status de **todos** os bancos "Concluído" para "Pendente" para **todos os usuários**, limpando a data de inserção do ciclo atual. Isso não pode ser desfeito.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

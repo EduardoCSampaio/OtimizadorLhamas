@@ -2,31 +2,48 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, CheckCircle2, ListTodo, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ListTodo } from 'lucide-react';
 import { useCollection, useFirebase, useUser, useMemoFirebase } from '@/firebase';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
-import type { BankChecklistStatus } from '@/lib/types';
+import { collection, query, where, Timestamp, orderBy } from 'firebase/firestore';
+import type { BankChecklistStatus, BankMaster } from '@/lib/types';
 import { differenceInDays, startOfDay, endOfDay } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 
 export default function StatsCards() {
   const { firestore, user } = useFirebase();
 
+  // 1. Fetch all master banks to identify which ones are for "Inserção"
+  const banksMasterCollectionRef = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
+    [firestore]
+  );
+  const { data: masterBanks, isLoading: isLoadingMasterBanks } = useCollection<BankMaster>(banksMasterCollectionRef);
+
+  // 2. Fetch the user's checklist data
   const userChecklistCollectionRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, 'users', user.uid, 'bankChecklists') : null),
     [firestore, user]
   );
-  
-  const { data: checklistItems, isLoading } = useCollection<BankChecklistStatus>(userChecklistCollectionRef);
+  const { data: checklistItems, isLoading: isLoadingChecklist } = useCollection<BankChecklistStatus>(userChecklistCollectionRef);
 
   const stats = useMemo(() => {
-    if (!checklistItems) {
+    if (!checklistItems || !masterBanks) {
       return {
         completedToday: 0,
         pending: 0,
         alert: 0,
       };
     }
+
+    // Create a Set of bank IDs that are marked for "Inserção"
+    const insertionBankIds = new Set(
+        masterBanks
+            .filter(bank => Array.isArray(bank.categories) && bank.categories.includes('Inserção'))
+            .map(bank => bank.id)
+    );
+
+    // Filter the user's checklist to only include items relevant to "Inserção"
+    const relevantChecklistItems = checklistItems.filter(item => insertionBankIds.has(item.id));
 
     const todayStart = startOfDay(new Date());
     const todayEnd = endOfDay(new Date());
@@ -35,7 +52,7 @@ export default function StatsCards() {
     let pending = 0;
     let alert = 0;
 
-    checklistItems.forEach(item => {
+    relevantChecklistItems.forEach(item => {
       // Completed Today
       if (item.status === 'Concluído' && item.insertionDate) {
         const insertionDate = item.insertionDate.toDate();
@@ -59,7 +76,9 @@ export default function StatsCards() {
     });
 
     return { completedToday, pending, alert };
-  }, [checklistItems]);
+  }, [checklistItems, masterBanks]);
+
+  const isLoading = isLoadingChecklist || isLoadingMasterBanks;
 
   const StatCard = ({ title, value, icon: Icon, description }: { title: string, value: number, icon: React.ElementType, description: string }) => (
     <Card>

@@ -170,7 +170,11 @@ export default function BankProposalView() {
       combined = combined.filter(bank => bank.categories.includes(filterCategory));
     }
     if (searchTerm) {
-      combined = combined.filter(bank => bank.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      combined = combined.filter(bank => 
+          bank.name.toLowerCase().includes(lowerSearchTerm) ||
+          (bank.customId && bank.customId.toLowerCase().includes(lowerSearchTerm))
+      );
     }
     
     // 4. Group by promotora
@@ -546,7 +550,7 @@ export default function BankProposalView() {
                         <div className="flex flex-col">
                           <span>{bank.name}</span>
                           <span className="text-xs text-muted-foreground font-mono">
-                            (#{bank.id.substring(0, 6)})
+                             (ID: #{bank.id.substring(0, 6)}{bank.customId ? ` / ${bank.customId}`: ''})
                           </span>
                         </div>
                       </div>
@@ -635,7 +639,7 @@ export default function BankProposalView() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar por nome do banco..."
+                placeholder="Buscar por nome ou ID..."
                 className="w-full rounded-lg bg-background pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

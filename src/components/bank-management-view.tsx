@@ -54,6 +54,7 @@ export default function BankManagementView() {
   // Form state
   const [newBankName, setNewBankName] = useState('');
   const [newBankLogoUrl, setNewBankLogoUrl] = useState('');
+  const [newBankCustomId, setNewBankCustomId] = useState('');
   const [newBankCategories, setNewBankCategories] = useState<BankCategory[]>([]);
   const [newBankPromotoraId, setNewBankPromotoraId] = useState<string | undefined>(undefined);
   
@@ -88,7 +89,10 @@ export default function BankManagementView() {
   const filteredBanks = useMemo(() => {
     if (!masterBanks) return [];
     return masterBanks.filter(bank => {
-        const matchesSearch = searchTerm === '' || bank.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        const matchesSearch = searchTerm === '' || 
+                              bank.name.toLowerCase().includes(lowerSearchTerm) ||
+                              (bank.customId && bank.customId.toLowerCase().includes(lowerSearchTerm));
         const matchesCategory = filterCategory === 'all' || (bank.categories && bank.categories.includes(filterCategory));
         const matchesPromotora = filterPromotora === 'all' || bank.promotoraId === filterPromotora;
         return matchesSearch && matchesCategory && matchesPromotora;
@@ -145,6 +149,7 @@ export default function BankManagementView() {
     const newBankData: Omit<BankMaster, 'id'> = {
       name: newBankName.trim(),
       logoUrl: newBankLogoUrl.trim(),
+      customId: newBankCustomId.trim() || undefined,
       categories: newBankCategories,
       promotoraId: newBankPromotoraId === 'none' ? undefined : newBankPromotoraId,
       createdAt: serverTimestamp(),
@@ -161,6 +166,7 @@ export default function BankManagementView() {
     // Reset form
     setNewBankName('');
     setNewBankLogoUrl('');
+    setNewBankCustomId('');
     setNewBankCategories([]);
     setNewBankPromotoraId(undefined);
 
@@ -178,6 +184,7 @@ export default function BankManagementView() {
   const handleUpdateBank = async (updatedData: {
     name: string;
     logoUrl: string;
+    customId?: string;
     categories: BankCategory[];
     promotoraId?: string;
   }) => {
@@ -189,6 +196,7 @@ export default function BankManagementView() {
       const dataToUpdate: any = {
         name: updatedData.name,
         logoUrl: updatedData.logoUrl,
+        customId: updatedData.customId || deleteField(),
         categories: updatedData.categories,
         updatedAt: serverTimestamp()
       };
@@ -232,7 +240,7 @@ export default function BankManagementView() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="bank-name">Nome do Banco</Label>
@@ -252,6 +260,18 @@ export default function BankManagementView() {
                   placeholder="https://.../logo.png"
                   value={newBankLogoUrl}
                   onChange={(e) => setNewBankLogoUrl(e.target.value)}
+                />
+              </div>
+            </div>
+             <div className="space-y-4">
+               <div className="space-y-2">
+                <Label htmlFor="bank-custom-id">ID Customizado (Opcional)</Label>
+                <Input
+                  id="bank-custom-id"
+                  type="text"
+                  placeholder="Ex: 12345"
+                  value={newBankCustomId}
+                  onChange={(e) => setNewBankCustomId(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -275,7 +295,7 @@ export default function BankManagementView() {
             </div>
             <div className="space-y-2">
               <Label>Categorias</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 p-4 border rounded-md">
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-x-4 gap-y-2 p-4 border rounded-md h-full">
                 {allCategories.map((cat) => (
                   <div key={cat} className="flex items-center space-x-2">
                     <Checkbox
@@ -311,7 +331,7 @@ export default function BankManagementView() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar por nome do banco..."
+                placeholder="Buscar por nome ou ID customizado..."
                 className="w-full rounded-lg bg-background pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -354,6 +374,7 @@ export default function BankManagementView() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Banco</TableHead>
+                  <TableHead>ID Customizado</TableHead>
                   <TableHead>Promotora</TableHead>
                   <TableHead>Categorias</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
@@ -379,6 +400,13 @@ export default function BankManagementView() {
                                 )}
                                 <span>{bank.name}</span>
                             </div>
+                            </TableCell>
+                             <TableCell>
+                                {bank.customId ? (
+                                    <Badge variant="secondary">{bank.customId}</Badge>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">N/A</span>
+                                )}
                             </TableCell>
                             <TableCell>
                                 {promotora ? (

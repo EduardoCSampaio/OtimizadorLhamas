@@ -22,7 +22,7 @@ interface EditBankModalProps {
   onClose: () => void;
   bank: BankMaster;
   promotoras: Promotora[];
-  onSave: (updatedData: { name: string, logoUrl: string, categories: BankCategory[], promotoraId?: string }) => Promise<void>;
+  onSave: (updatedData: { name: string, logoUrl: string, customId?: string, categories: BankCategory[], promotoraId?: string }) => Promise<void>;
 }
 
 const allCategories: BankCategory[] = ['Inserção', 'CLT', 'FGTS', 'GOV', 'INSS', 'Sem Info'];
@@ -31,6 +31,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [customId, setCustomId] = useState('');
   const [categories, setCategories] = useState<BankCategory[]>([]);
   const [promotoraId, setPromotoraId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,6 +40,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
     if (bank) {
       setName(bank.name);
       setLogoUrl(bank.logoUrl || '');
+      setCustomId(bank.customId || '');
       setCategories(bank.categories || []);
       setPromotoraId(bank.promotoraId);
     }
@@ -74,6 +76,7 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
     await onSave({ 
         name, 
         logoUrl, 
+        customId,
         categories, 
         promotoraId: promotoraId === 'none' ? undefined : promotoraId 
     });
@@ -110,6 +113,18 @@ export default function EditBankModal({ isOpen, onClose, bank, promotoras, onSav
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
               className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="edit-bank-custom-id" className="text-right">
+              ID Custom.
+            </Label>
+            <Input
+              id="edit-bank-custom-id"
+              value={customId}
+              onChange={(e) => setCustomId(e.target.value)}
+              className="col-span-3"
+              placeholder='Opcional'
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">

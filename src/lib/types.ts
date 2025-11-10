@@ -26,6 +26,7 @@ export interface BankMaster {
   id: string;
   name: string;
   logoUrl: string;
+  customId?: string;
   categories: BankCategory[];
   promotoraId?: string; // Optional: ID of the associated Promotora
   createdAt: Timestamp;
@@ -87,4 +88,3 @@ export interface BankAccessDetails {
   logins?: LoginCredential[];
   updatedAt: Timestamp;
 }
-

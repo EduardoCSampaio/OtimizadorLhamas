@@ -5,7 +5,7 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Toolti
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useCollection, useUser, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { BankChecklistStatus } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -13,44 +13,48 @@ import { Skeleton } from '../ui/skeleton';
 export default function CompletionsChart() {
   const { firestore, user } = useFirebase();
 
-  const startOfLast7Days = useMemo(() => subDays(startOfDay(new Date()), 6), []);
+  // Defines the start date for the query (7 days ago).
+  const startOfPeriod = useMemo(() => subDays(startOfDay(new Date()), 6), []);
 
+  // Firebase query to get completions within the last 7 days.
   const userChecklistQueryRef = useMemoFirebase(
     () =>
       firestore && user
         ? query(
             collection(firestore, 'users', user.uid, 'bankChecklists'),
-            where('lastCompletedAt', '>=', Timestamp.fromDate(startOfLast7Days))
+            where('lastCompletedAt', '>=', Timestamp.fromDate(startOfPeriod))
           )
         : null,
-    [firestore, user, startOfLast7Days]
+    [firestore, user, startOfPeriod]
   );
   
   const { data: recentCompletions, isLoading } = useCollection<BankChecklistStatus>(userChecklistQueryRef);
 
   const chartData = useMemo(() => {
-    const dataByDay: { [key: string]: number } = {};
-    for (let i = 0; i < 7; i++) {
-      const date = format(subDays(new Date(), i), 'yyyy-MM-dd');
-      dataByDay[date] = 0;
+    // 1. Create a data structure for the last 7 days, initialized to 0.
+    const dataByDay: { [key: string]: { date: Date; completions: number } } = {};
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(new Date(), i);
+      const dateKey = format(date, 'yyyy-MM-dd');
+      dataByDay[dateKey] = { date: date, completions: 0 };
     }
 
+    // 2. Populate the structure with data from Firestore.
     recentCompletions?.forEach(completion => {
       if (completion.lastCompletedAt) {
-        const dateStr = format(completion.lastCompletedAt.toDate(), 'yyyy-MM-dd');
-        if (dateStr in dataByDay) {
-          dataByDay[dateStr] = (dataByDay[dateStr] || 0) + 1;
+        const dateKey = format(completion.lastCompletedAt.toDate(), 'yyyy-MM-dd');
+        if (dataByDay[dateKey]) {
+          dataByDay[dateKey].completions++;
         }
       }
     });
 
-    return Object.keys(dataByDay)
-      .map(date => ({
-        date,
-        name: format(new Date(date), 'eee', { locale: ptBR }),
-        completions: dataByDay[date],
-      }))
-      .reverse();
+    // 3. Convert to an array and format for the chart.
+    return Object.values(dataByDay).map(dayData => ({
+      date: format(dayData.date, 'yyyy-MM-dd'),
+      name: format(dayData.date, 'eee', { locale: ptBR }),
+      completions: dayData.completions,
+    }));
 
   }, [recentCompletions]);
 

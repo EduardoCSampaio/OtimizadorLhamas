@@ -543,7 +543,12 @@ export default function BankProposalView() {
                         ) : (
                           <Landmark className="h-6 w-6 text-muted-foreground" />
                         )}
-                        <span>{bank.name}</span>
+                        <div className="flex flex-col">
+                          <span>{bank.name}</span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            (#{bank.id.substring(0, 6)})
+                          </span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>

@@ -331,8 +331,6 @@ export default function BankProposalView() {
     });
   }
 
-  const isLoading = isLoadingMasterBanks || isLoadingChecklist || isLoadingPromotoras;
-
   const handleResetChecklist = async () => {
     if (!firestore || !user) return;
     setIsResetting(true);
@@ -389,6 +387,9 @@ export default function BankProposalView() {
         setIsResetting(false);
     }
 }
+
+  const isLoading = isLoadingMasterBanks || isLoadingChecklist || isLoadingPromotoras;
+
 
   const loadImage = (url: string): Promise<HTMLImageElement> => {
       return new Promise((resolve, reject) => {
@@ -549,9 +550,11 @@ export default function BankProposalView() {
                         )}
                         <div className="flex flex-col">
                           <span>{bank.name}</span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                             (ID: #{bank.id.substring(0, 6)}{bank.customId ? ` / ${bank.customId}`: ''})
-                          </span>
+                           {bank.customId && (
+                                <span className="text-xs text-muted-foreground font-mono">
+                                    (ID: {bank.customId})
+                                </span>
+                           )}
                         </div>
                       </div>
                     </TableCell>

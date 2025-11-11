@@ -45,12 +45,13 @@ service cloud.firestore {
         allow read: if request.auth != null;
         allow write: if isMaster();
       }
-
-      match /knowledgeBase/{entryId} {
-        allow get, list: if request.auth != null;
-        allow write: if isMaster();
-      }
     }
+    
+    match /bankStatuses/{bankStatusId}/knowledgeBase/{entryId} {
+        allow get, list: if request.auth != null;
+        allow create, update, delete: if isMaster();
+    }
+
 
     match /activityLogs/{logId} {
       allow read: if request.auth != null;

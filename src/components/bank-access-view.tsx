@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle } from 'lucide-react';
-import { useCollection, useFirebase, useUser, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirebase, useUser, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import type { BankMaster, AccessDetails, LoginCredential, Promotora } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';

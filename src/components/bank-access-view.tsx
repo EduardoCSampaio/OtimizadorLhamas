@@ -19,8 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle } from 'lucide-react';
-import { useCollection, useFirebase, useUser, useMemoFirebase, useDoc } from '@/firebase';
+import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle, Search } from 'lucide-react';
+import { useCollection, useFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import type { BankMaster, AccessDetails, LoginCredential, Promotora } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { useMemoFirebase } from '@/firebase/provider';
 
 
 interface AccessItemProps {
@@ -310,6 +311,7 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
 
 export default function BankAccessView() {
   const { firestore } = useFirebase();
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch all master data
   const banksQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null), [firestore]);
@@ -338,6 +340,19 @@ export default function BankAccessView() {
       independentBanks: independent,
     };
   }, [allBanks, promotoras]);
+  
+  const filteredPromotoras = useMemo(() => {
+    if (!searchTerm) return promotorasWithBanks;
+    const lowerCaseSearch = searchTerm.toLowerCase();
+    return promotorasWithBanks.filter(p => p.name.toLowerCase().includes(lowerCaseSearch));
+  }, [promotorasWithBanks, searchTerm]);
+
+  const filteredIndependentBanks = useMemo(() => {
+    if (!searchTerm) return independentBanks;
+    const lowerCaseSearch = searchTerm.toLowerCase();
+    return independentBanks.filter(b => b.name.toLowerCase().includes(lowerCaseSearch));
+  }, [independentBanks, searchTerm]);
+
 
   const isLoading = isLoadingBanks || isLoadingPromotoras;
   
@@ -360,14 +375,26 @@ export default function BankAccessView() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <KeyRound className="h-6 w-6 text-primary" />
-          <div>
-            <CardTitle>Meus Acessos</CardTitle>
-            <CardDescription>
-              Gerencie seus links e credenciais de acesso. Estas informações são privadas e visíveis apenas para você.
-            </CardDescription>
-          </div>
+        <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+            <KeyRound className="h-6 w-6 text-primary" />
+            <div>
+                <CardTitle>Meus Acessos</CardTitle>
+                <CardDescription>
+                Gerencie seus links e credenciais de acesso. Estas informações são privadas e visíveis apenas para você.
+                </CardDescription>
+            </div>
+            </div>
+            <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Buscar promotora ou banco..."
+                    className="w-full rounded-lg bg-background pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -378,14 +405,14 @@ export default function BankAccessView() {
             <Skeleton className="h-12 w-full" />
           </div>
         )}
-        {!isLoading && promotorasWithBanks.length > 0 && (
+        {!isLoading && filteredPromotoras.length > 0 && (
            <div className='p-4'>
              <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-muted-foreground">
                 <Building className="h-5 w-5" />
                 Acessos por Promotora
              </div>
              <Accordion type="multiple" className="w-full">
-                {promotorasWithBanks.map(p => (
+                {filteredPromotoras.map(p => (
                     <AccessItem key={p.id} item={p} collectionPath="promotoraAccessDetails">
                        {p.banks.length > 0 && renderBankList(p.banks)}
                     </AccessItem>
@@ -393,22 +420,22 @@ export default function BankAccessView() {
             </Accordion>
            </div>
         )}
-         {!isLoading && independentBanks.length > 0 && (
+         {!isLoading && filteredIndependentBanks.length > 0 && (
            <div className='p-4'>
              <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-muted-foreground">
                 <Users className="h-5 w-5" />
                 Bancos Independentes
              </div>
             <Accordion type="multiple" className="w-full">
-                {independentBanks.map(bank => (
+                {filteredIndependentBanks.map(bank => (
                     <AccessItem key={bank.id} item={bank} collectionPath="bankAccessDetails" />
                 ))}
             </Accordion>
            </div>
         )}
-         {!isLoading && promotorasWithBanks.length === 0 && independentBanks.length === 0 && (
+         {!isLoading && filteredPromotoras.length === 0 && filteredIndependentBanks.length === 0 && (
              <p className="text-muted-foreground text-sm p-4 text-center">
-              Nenhum banco ou promotora cadastrado no sistema.
+              {searchTerm ? `Nenhum resultado para "${searchTerm}".` : 'Nenhum banco ou promotora cadastrado no sistema.'}
             </p>
          )}
       </CardContent>

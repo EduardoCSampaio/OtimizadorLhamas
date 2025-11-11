@@ -77,6 +77,7 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   }, [accessDetails]);
   
   const hasDetails = accessDetails && (accessDetails.link || (accessDetails.logins && accessDetails.logins.length > 0) || accessDetails.requiresToken || accessDetails.isRobo);
+  const hasCredentials = accessDetails && accessDetails.logins && accessDetails.logins.length > 0;
 
   const handleCopyToClipboard = (text: string, fieldName: string) => {
     if (!text) return;
@@ -326,6 +327,12 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
           </div>
         </AccordionTrigger>
         <div className="flex items-center gap-2 pl-2">
+             {hasCredentials && (
+                <Badge variant="default" className="ml-2 whitespace-nowrap bg-green-600 hover:bg-green-700">
+                    <KeyRound className="h-3.5 w-3.5 mr-1.5" />
+                    Acesso Salvo
+                </Badge>
+            )}
             {accessDetails?.requiresToken && (
                 <Badge variant="destructive" className="ml-2 whitespace-nowrap">
                     <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />

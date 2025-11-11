@@ -49,7 +49,7 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   const [editIsRobo, setEditIsRobo] = useState(false);
   const [editRoboResponsible, setEditRoboResponsible] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
 
   const accessDetailsRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid, collectionPath, item.id) : null),
@@ -119,7 +119,7 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   };
 
   const handleAddNewLogin = () => {
-    setEditLogins([...editLogins, { type: '', username: '', password: '' }]);
+    setEditLogins([...editLogins, { type: '', username: '', password: '', subPassword: '' }]);
   };
   
   const handleLoginChange = (index: number, field: keyof LoginCredential, value: string) => {
@@ -139,8 +139,8 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
     toast({ title: 'Copiado!', description: `${fieldName} copiado para a área de transferência.` });
   };
 
-  const toggleShowPassword = (index: number) => {
-    setShowPasswords(prev => ({ ...prev, [index]: !prev[index] }));
+  const toggleShowPassword = (id: string) => {
+    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const renderViewMode = () => (
@@ -172,20 +172,38 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
                             </Button>
                         </div>
                     </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground">Senha</p>
-                        <div className="flex items-center gap-1">
-                            <p className="font-mono text-sm">
-                            {showPasswords[index] ? login.password : '••••••••'}
-                            </p>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => toggleShowPassword(index)}>
-                                {showPasswords[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.password || '', 'Senha')}>
-                            <Clipboard className="h-4 w-4" />
-                            </Button>
+                    {login.password && (
+                        <div>
+                            <p className="text-xs text-muted-foreground">Senha</p>
+                            <div className="flex items-center gap-1">
+                                <p className="font-mono text-sm">
+                                {showPasswords[`pass-${index}`] ? login.password : '••••••••'}
+                                </p>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => toggleShowPassword(`pass-${index}`)}>
+                                    {showPasswords[`pass-${index}`] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.password || '', 'Senha')}>
+                                <Clipboard className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+                    {login.subPassword && (
+                        <div>
+                            <p className="text-xs text-muted-foreground">Subsenha</p>
+                            <div className="flex items-center gap-1">
+                                <p className="font-mono text-sm">
+                                {showPasswords[`subpass-${index}`] ? login.subPassword : '••••••••'}
+                                </p>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => toggleShowPassword(`subpass-${index}`)}>
+                                    {showPasswords[`subpass-${index}`] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.subPassword || '', 'Subsenha')}>
+                                <Clipboard className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 </div>
             ))}
@@ -214,7 +232,7 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
             <Label>Credenciais de Acesso</Label>
             {editLogins.map((login, index) => (
             <div key={index} className="flex items-end gap-2 p-3 border rounded-md relative">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-grow">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-grow">
                     <div className="space-y-1">
                         <Label htmlFor={`login-type-${index}`} className="text-xs">Tipo</Label>
                         <Input id={`login-type-${index}`} placeholder="Master, Autorizador" value={login.type} onChange={e => handleLoginChange(index, 'type', e.target.value)} />
@@ -226,6 +244,10 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
                     <div className="space-y-1">
                         <Label htmlFor={`login-password-${index}`} className="text-xs">Senha</Label>
                         <Input id={`login-password-${index}`} type="text" placeholder="********" value={login.password || ''} onChange={e => handleLoginChange(index, 'password', e.target.value)} />
+                    </div>
+                     <div className="space-y-1">
+                        <Label htmlFor={`login-subpassword-${index}`} className="text-xs">Subsenha (Opcional)</Label>
+                        <Input id={`login-subpassword-${index}`} type="text" placeholder="********" value={login.subPassword || ''} onChange={e => handleLoginChange(index, 'subPassword', e.target.value)} />
                     </div>
                 </div>
                 <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleRemoveLogin(index)}>

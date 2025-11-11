@@ -78,6 +78,7 @@ export interface LoginCredential {
   type: string;
   username: string;
   password?: string;
+  subPassword?: string;
 }
 
 // Represents the user-specific, private access details for a bank OR a promotora

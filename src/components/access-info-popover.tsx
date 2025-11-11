@@ -23,7 +23,7 @@ export default function AccessInfoPopover({ bank }: AccessInfoPopoverProps) {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
 
   const accessId = bank.promotoraId || bank.id;
   const collectionPath = bank.promotoraId ? 'promotoraAccessDetails' : 'bankAccessDetails';
@@ -44,8 +44,8 @@ export default function AccessInfoPopover({ bank }: AccessInfoPopoverProps) {
     toast({ title: 'Copiado!', description: `${fieldName} copiado para a área de transferência.` });
   };
 
-  const toggleShowPassword = (index: number) => {
-    setShowPasswords(prev => ({ ...prev, [index]: !prev[index] }));
+  const toggleShowPassword = (id: string) => {
+    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -90,20 +90,38 @@ export default function AccessInfoPopover({ bank }: AccessInfoPopoverProps) {
                                 </Button>
                             </div>
                         </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Senha</p>
-                            <div className="flex items-center gap-1">
-                                <p className="font-mono text-sm">
-                                {showPasswords[index] ? login.password : '••••••••'}
-                                </p>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => toggleShowPassword(index)}>
-                                    {showPasswords[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.password || '', 'Senha')}>
-                                <Clipboard className="h-4 w-4" />
-                                </Button>
+                        {login.password && (
+                            <div>
+                                <p className="text-xs text-muted-foreground">Senha</p>
+                                <div className="flex items-center gap-1">
+                                    <p className="font-mono text-sm">
+                                    {showPasswords[`pass-${index}`] ? login.password : '••••••••'}
+                                    </p>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => toggleShowPassword(`pass-${index}`)}>
+                                        {showPasswords[`pass-${index}`] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.password || '', 'Senha')}>
+                                    <Clipboard className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
+                        )}
+                         {login.subPassword && (
+                            <div>
+                                <p className="text-xs text-muted-foreground">Subsenha</p>
+                                <div className="flex items-center gap-1">
+                                    <p className="font-mono text-sm">
+                                    {showPasswords[`subpass-${index}`] ? login.subPassword : '••••••••'}
+                                    </p>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => toggleShowPassword(`subpass-${index}`)}>
+                                        {showPasswords[`subpass-${index}`] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.subPassword || '', 'Subsenha')}>
+                                    <Clipboard className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     </div>
                 ))}

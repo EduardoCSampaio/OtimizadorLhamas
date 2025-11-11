@@ -87,6 +87,8 @@ export interface AccessDetails {
   logins?: LoginCredential[];
   requiresToken?: boolean;
   tokenResponsible?: string;
+  isRobo?: boolean;
+  roboResponsible?: string;
   updatedAt: Timestamp;
 }
 

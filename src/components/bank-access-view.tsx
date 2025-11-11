@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import NextImage from 'next/image';
 import {
   Card,
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle, Search } from 'lucide-react';
+import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle, Search, Bot } from 'lucide-react';
 import { useCollection, useFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import type { BankMaster, AccessDetails, LoginCredential, Promotora } from '@/lib/types';
@@ -48,6 +48,8 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   const [editLogins, setEditLogins] = useState<LoginCredential[]>([]);
   const [editRequiresToken, setEditRequiresToken] = useState(false);
   const [editTokenResponsible, setEditTokenResponsible] = useState('');
+  const [editIsRobo, setEditIsRobo] = useState(false);
+  const [editRoboResponsible, setEditRoboResponsible] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const accessDetailsRef = useMemoFirebase(
@@ -62,15 +64,19 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
       setEditLogins(accessDetails.logins || []);
       setEditRequiresToken(accessDetails.requiresToken || false);
       setEditTokenResponsible(accessDetails.tokenResponsible || '');
+      setEditIsRobo(accessDetails.isRobo || false);
+      setEditRoboResponsible(accessDetails.roboResponsible || '');
     } else {
       setEditLink('');
       setEditLogins([]);
       setEditRequiresToken(false);
       setEditTokenResponsible('');
+      setEditIsRobo(false);
+      setEditRoboResponsible('');
     }
   }, [accessDetails]);
   
-  const hasDetails = accessDetails && (accessDetails.link || (accessDetails.logins && accessDetails.logins.length > 0) || accessDetails.requiresToken);
+  const hasDetails = accessDetails && (accessDetails.link || (accessDetails.logins && accessDetails.logins.length > 0) || accessDetails.requiresToken || accessDetails.isRobo);
 
   const handleCopyToClipboard = (text: string, fieldName: string) => {
     if (!text) return;
@@ -87,6 +93,8 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
     setEditLogins(JSON.parse(JSON.stringify(accessDetails?.logins || [])));
     setEditRequiresToken(accessDetails?.requiresToken || false);
     setEditTokenResponsible(accessDetails?.tokenResponsible || '');
+    setEditIsRobo(accessDetails?.isRobo || false);
+    setEditRoboResponsible(accessDetails?.roboResponsible || '');
     setIsEditing(true);
   };
 
@@ -107,6 +115,8 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
       logins: editLogins.filter(l => l.type.trim() || l.username.trim()),
       requiresToken: editRequiresToken,
       tokenResponsible: editRequiresToken ? editTokenResponsible : '',
+      isRobo: editIsRobo,
+      roboResponsible: editIsRobo ? editRoboResponsible : '',
       updatedAt: serverTimestamp(),
     };
 
@@ -267,6 +277,37 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
             )}
         </div>
 
+        <div className="space-y-4 p-3 border rounded-md">
+            <div className="space-y-2">
+                <Label>Acesso via Robô?</Label>
+                <RadioGroup
+                    value={editIsRobo ? 'yes' : 'no'}
+                    onValueChange={(value) => setEditIsRobo(value === 'yes')}
+                    className="flex gap-4"
+                >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="yes" id="robo-yes" />
+                        <Label htmlFor="robo-yes">Sim</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="robo-no" />
+                        <Label htmlFor="robo-no">Não</Label>
+                    </div>
+                </RadioGroup>
+            </div>
+            {editIsRobo && (
+                 <div className="space-y-2">
+                    <Label htmlFor="robo-responsible">Responsável pelo Robô</Label>
+                    <Input
+                    id="robo-responsible"
+                    placeholder="Nome da pessoa"
+                    value={editRoboResponsible}
+                    onChange={e => setEditRoboResponsible(e.target.value)}
+                    />
+                </div>
+            )}
+        </div>
+
         <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleCancelClick} disabled={isSaving}>
                 <X className="mr-2 h-4 w-4" />
@@ -282,16 +323,24 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
 
   return (
     <AccordionItem value={item.id}>
-      <AccordionTrigger>
-        <div className="flex items-center gap-3">
-          {item.logoUrl ? (
-            <NextImage src={item.logoUrl} alt={`${item.name} logo`} width={24} height={24} className="h-6 w-6 object-contain" />
-          ) : (
-            <Landmark className="h-6 w-6 text-muted-foreground" />
-          )}
-          <span className="font-medium">{item.name}</span>
-        </div>
-      </AccordionTrigger>
+      <div className="flex w-full items-center justify-between pr-4">
+        <AccordionTrigger className="flex-1">
+          <div className="flex items-center gap-3">
+            {item.logoUrl ? (
+              <NextImage src={item.logoUrl} alt={`${item.name} logo`} width={24} height={24} className="h-6 w-6 object-contain" />
+            ) : (
+              <Landmark className="h-6 w-6 text-muted-foreground" />
+            )}
+            <span className="font-medium">{item.name}</span>
+          </div>
+        </AccordionTrigger>
+        {accessDetails?.isRobo && (
+            <Badge variant="secondary" className="ml-2 whitespace-nowrap">
+                <Bot className="h-3.5 w-3.5 mr-1.5" />
+                Robô: {accessDetails.roboResponsible || 'N/I'}
+            </Badge>
+        )}
+      </div>
       <AccordionContent>
         {isLoading ? (
           <div className="space-y-4 p-4">
@@ -344,7 +393,10 @@ export default function BankAccessView() {
   const filteredPromotoras = useMemo(() => {
     if (!searchTerm) return promotorasWithBanks;
     const lowerCaseSearch = searchTerm.toLowerCase();
-    return promotorasWithBanks.filter(p => p.name.toLowerCase().includes(lowerCaseSearch));
+    return promotorasWithBanks.filter(p => 
+        p.name.toLowerCase().includes(lowerCaseSearch) ||
+        p.banks.some(b => b.name.toLowerCase().includes(lowerCaseSearch))
+    );
   }, [promotorasWithBanks, searchTerm]);
 
   const filteredIndependentBanks = useMemo(() => {

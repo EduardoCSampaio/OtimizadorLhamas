@@ -146,15 +146,6 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
      <div className="p-4 space-y-4">
         {hasDetails ? (
             <>
-                {accessDetails.requiresToken && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Necessário Token</AlertTitle>
-                        <AlertDescription>
-                            Responsável: {accessDetails.tokenResponsible || 'Não informado'}
-                        </AlertDescription>
-                    </Alert>
-                )}
                 {accessDetails.link && (
                     <div className="flex items-center gap-2">
                         <LinkIcon className="h-4 w-4 text-muted-foreground" />
@@ -324,7 +315,7 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   return (
     <AccordionItem value={item.id}>
       <div className="flex w-full items-center justify-between pr-4">
-        <AccordionTrigger className="flex-1">
+        <AccordionTrigger className="flex-1 py-3">
           <div className="flex items-center gap-3">
             {item.logoUrl ? (
               <NextImage src={item.logoUrl} alt={`${item.name} logo`} width={24} height={24} className="h-6 w-6 object-contain" />
@@ -334,12 +325,20 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
             <span className="font-medium">{item.name}</span>
           </div>
         </AccordionTrigger>
-        {accessDetails?.isRobo && (
-            <Badge variant="secondary" className="ml-2 whitespace-nowrap">
-                <Bot className="h-3.5 w-3.5 mr-1.5" />
-                Robô: {accessDetails.roboResponsible || 'N/I'}
-            </Badge>
-        )}
+        <div className="flex items-center gap-2 pl-2">
+            {accessDetails?.requiresToken && (
+                <Badge variant="destructive" className="ml-2 whitespace-nowrap">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+                    Token: {accessDetails.tokenResponsible || 'N/I'}
+                </Badge>
+            )}
+            {accessDetails?.isRobo && (
+                <Badge variant="secondary" className="ml-2 whitespace-nowrap">
+                    <Bot className="h-3.5 w-3.5 mr-1.5" />
+                    Robô: {accessDetails.roboResponsible || 'N/I'}
+                </Badge>
+            )}
+        </div>
       </div>
       <AccordionContent>
         {isLoading ? (

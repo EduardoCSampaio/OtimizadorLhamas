@@ -18,7 +18,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle } from 'lucide-react';
 import { useCollection, useFirebase, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import type { BankMaster, AccessDetails, LoginCredential, Promotora } from '@/lib/types';
@@ -26,6 +27,7 @@ import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from './ui/badge';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 
 interface AccessItemProps {
@@ -40,8 +42,11 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
 
+  // Edit state
   const [editLink, setEditLink] = useState('');
   const [editLogins, setEditLogins] = useState<LoginCredential[]>([]);
+  const [editRequiresToken, setEditRequiresToken] = useState(false);
+  const [editTokenResponsible, setEditTokenResponsible] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const accessDetailsRef = useMemoFirebase(
@@ -54,13 +59,17 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
     if (accessDetails) {
       setEditLink(accessDetails.link || '');
       setEditLogins(accessDetails.logins || []);
+      setEditRequiresToken(accessDetails.requiresToken || false);
+      setEditTokenResponsible(accessDetails.tokenResponsible || '');
     } else {
       setEditLink('');
       setEditLogins([]);
+      setEditRequiresToken(false);
+      setEditTokenResponsible('');
     }
   }, [accessDetails]);
   
-  const hasDetails = accessDetails && (accessDetails.link || (accessDetails.logins && accessDetails.logins.length > 0));
+  const hasDetails = accessDetails && (accessDetails.link || (accessDetails.logins && accessDetails.logins.length > 0) || accessDetails.requiresToken);
 
   const handleCopyToClipboard = (text: string, fieldName: string) => {
     if (!text) return;
@@ -74,7 +83,9 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   
   const handleEditClick = () => {
     setEditLink(accessDetails?.link || '');
-    setEditLogins(accessDetails?.logins || []);
+    setEditLogins(JSON.parse(JSON.stringify(accessDetails?.logins || [])));
+    setEditRequiresToken(accessDetails?.requiresToken || false);
+    setEditTokenResponsible(accessDetails?.tokenResponsible || '');
     setIsEditing(true);
   };
 
@@ -93,6 +104,8 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
     const dataToSave: Omit<AccessDetails, 'id'> = {
       link: editLink,
       logins: editLogins.filter(l => l.type.trim() || l.username.trim()),
+      requiresToken: editRequiresToken,
+      tokenResponsible: editRequiresToken ? editTokenResponsible : '',
       updatedAt: serverTimestamp(),
     };
 
@@ -122,6 +135,15 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
      <div className="p-4 space-y-4">
         {hasDetails ? (
             <>
+                {accessDetails.requiresToken && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Necessário Token</AlertTitle>
+                        <AlertDescription>
+                            Responsável: {accessDetails.tokenResponsible || 'Não informado'}
+                        </AlertDescription>
+                    </Alert>
+                )}
                 {accessDetails.link && (
                     <div className="flex items-center gap-2">
                         <LinkIcon className="h-4 w-4 text-muted-foreground" />
@@ -213,6 +235,37 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
             </Button>
         </div>
 
+        <div className="space-y-4 p-3 border rounded-md">
+            <div className="space-y-2">
+                <Label>Necessita Token?</Label>
+                <RadioGroup
+                    value={editRequiresToken ? 'yes' : 'no'}
+                    onValueChange={(value) => setEditRequiresToken(value === 'yes')}
+                    className="flex gap-4"
+                >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="yes" id="token-yes" />
+                        <Label htmlFor="token-yes">Sim</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="token-no" />
+                        <Label htmlFor="token-no">Não</Label>
+                    </div>
+                </RadioGroup>
+            </div>
+            {editRequiresToken && (
+                 <div className="space-y-2">
+                    <Label htmlFor="token-responsible">Responsável pelo Token</Label>
+                    <Input
+                    id="token-responsible"
+                    placeholder="Nome da pessoa"
+                    value={editTokenResponsible}
+                    onChange={e => setEditTokenResponsible(e.target.value)}
+                    />
+                </div>
+            )}
+        </div>
+
         <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleCancelClick} disabled={isSaving}>
                 <X className="mr-2 h-4 w-4" />
@@ -281,7 +334,7 @@ export default function BankAccessView() {
     });
 
     return {
-      promotorasWithBanks: Array.from(promotoraMap.values()).filter(p => p.banks.length > 0),
+      promotorasWithBanks: Array.from(promotoraMap.values()),
       independentBanks: independent,
     };
   }, [allBanks, promotoras]);

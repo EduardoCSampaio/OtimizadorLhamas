@@ -85,6 +85,8 @@ export interface AccessDetails {
   id: string; // This ID should correspond to the BankMaster or Promotora ID
   link?: string;
   logins?: LoginCredential[];
+  requiresToken?: boolean;
+  tokenResponsible?: string;
   updatedAt: Timestamp;
 }
 

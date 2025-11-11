@@ -216,27 +216,23 @@
         "type"
       ]
     },
-    "BankAccessDetails": {
+    "AccessDetails": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BankAccessDetails",
+      "title": "AccessDetails",
       "type": "object",
-      "description": "Stores user-specific, private access details for a bank, like links and credentials.",
+      "description": "Stores user-specific, private access details for a bank or promotora, like links and credentials.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier, same as the bankId from bankStatuses."
-        },
-        "bankId": {
-          "type": "string",
-          "description": "The ID of the bank this access detail belongs to."
+          "description": "Unique identifier, same as the bankId or promotoraId."
         },
         "link": {
           "type": "string",
-          "description": "The URL for the bank's portal."
+          "description": "The URL for the portal."
         },
         "logins": {
           "type": "array",
-          "description": "A list of login credentials for the bank.",
+          "description": "A list of login credentials.",
           "items": {
             "type": "object",
             "properties": {
@@ -256,6 +252,14 @@
             "required": ["type", "username", "password"]
           }
         },
+        "requiresToken": {
+            "type": "boolean",
+            "description": "Indicates if a token is required for login."
+        },
+        "tokenResponsible": {
+            "type": "string",
+            "description": "The name of the person responsible for the token."
+        },
         "updatedAt": {
           "type": "string",
           "format": "date-time",
@@ -264,7 +268,6 @@
       },
       "required": [
         "id",
-        "bankId",
         "updatedAt"
       ]
     }
@@ -311,15 +314,31 @@
           {
             "path": "/bankAccessDetails/{accessId}",
             "definition": {
-              "entityName": "BankAccessDetails",
+              "entityName": "AccessDetails",
               "schema": {
-                "$ref": "#/backend/entities/BankAccessDetails"
+                "$ref": "#/backend/entities/AccessDetails"
               },
               "description": "Stores user-specific, private access details for each bank. A user can only access their own details.",
               "params": [
                 {
                   "name": "accessId",
-                  "description": "The unique identifier for the bank access detail entry, matching the bankStatusId."
+                  "description": "The unique identifier for the bank access detail entry, matching the bankId."
+                }
+              ]
+            }
+          },
+           {
+            "path": "/promotoraAccessDetails/{accessId}",
+            "definition": {
+              "entityName": "AccessDetails",
+              "schema": {
+                "$ref": "#/backend/entities/AccessDetails"
+              },
+              "description": "Stores user-specific, private access details for each promotora. A user can only access their own details.",
+              "params": [
+                {
+                  "name": "accessId",
+                  "description": "The unique identifier for the promotora access detail entry, matching the promotoraId."
                 }
               ]
             }

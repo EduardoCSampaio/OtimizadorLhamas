@@ -97,3 +97,13 @@ export interface AccessDetails {
 export type BankAccessDetails = AccessDetails & { bankId: string };
 // Explicitly for promotoras
 export type PromotoraAccessDetails = AccessDetails & { promotoraId: string };
+
+export interface KnowledgeBaseEntry {
+    id: string;
+    title: string;
+    content: string;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}
+
+    

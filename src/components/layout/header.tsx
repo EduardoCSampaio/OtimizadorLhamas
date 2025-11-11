@@ -10,6 +10,7 @@ import {
   LogOut,
   Settings,
   User as UserIcon,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +45,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/', label: 'Painel Principal', icon: LayoutDashboard },
+    { href: '/instrucoes', label: 'Instruções', icon: BookOpen },
     { href: '/bancos', label: 'Bancos', icon: Building2 },
     { href: '/regras-clt', label: 'Regras CLT', icon: Settings },
   ];

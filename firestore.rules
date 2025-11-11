@@ -26,6 +26,10 @@ service cloud.firestore {
       match /bankAccessDetails/{accessId} {
         allow read, write: if isOwner(userId);
       }
+
+      match /promotoraAccessDetails/{accessId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     match /promotoras/{promotoraId} {

@@ -80,11 +80,15 @@ export interface LoginCredential {
   password?: string;
 }
 
-// Represents the user-specific, private access details for a bank
-export interface BankAccessDetails {
-  id: string; // This ID should correspond to the BankMaster ID
-  bankId: string;
+// Represents the user-specific, private access details for a bank OR a promotora
+export interface AccessDetails {
+  id: string; // This ID should correspond to the BankMaster or Promotora ID
   link?: string;
   logins?: LoginCredential[];
   updatedAt: Timestamp;
 }
+
+// Explicitly for banks, just an alias for clarity in some components
+export type BankAccessDetails = AccessDetails & { bankId: string };
+// Explicitly for promotoras
+export type PromotoraAccessDetails = AccessDetails & { promotoraId: string };

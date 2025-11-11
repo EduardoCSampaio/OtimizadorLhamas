@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import NextImage from 'next/image';
 import {
   Card,
@@ -18,41 +18,49 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X } from 'lucide-react';
-import { useCollection, useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users } from 'lucide-react';
+import { useCollection, useFirebase, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
-import type { BankMaster, BankAccessDetails, LoginCredential } from '@/lib/types';
+import type { BankMaster, AccessDetails, LoginCredential, Promotora } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Badge } from './ui/badge';
 
 
-function BankAccessItem({ bank }: { bank: BankMaster }) {
+interface AccessItemProps {
+  item: { id: string; name: string; logoUrl?: string; };
+  collectionPath: 'bankAccessDetails' | 'promotoraAccessDetails';
+  children?: React.ReactNode;
+}
+
+function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
 
-  // Form state for editing
   const [editLink, setEditLink] = useState('');
   const [editLogins, setEditLogins] = useState<LoginCredential[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   const accessDetailsRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'users', user.uid, 'bankAccessDetails', bank.id) : null),
-    [firestore, user, bank.id]
+    () => (firestore && user ? doc(firestore, 'users', user.uid, collectionPath, item.id) : null),
+    [firestore, user, item.id, collectionPath]
   );
-  const { data: accessDetails, isLoading } = useDoc<BankAccessDetails>(accessDetailsRef);
+  const { data: accessDetails, isLoading } = useDoc<AccessDetails>(accessDetailsRef);
 
   useEffect(() => {
     if (accessDetails) {
-        setEditLink(accessDetails.link || '');
-        setEditLogins(accessDetails.logins || []);
+      setEditLink(accessDetails.link || '');
+      setEditLogins(accessDetails.logins || []);
     } else {
-        setEditLink('');
-        setEditLogins([]);
+      setEditLink('');
+      setEditLogins([]);
     }
   }, [accessDetails]);
+  
+  const hasDetails = accessDetails && (accessDetails.link || (accessDetails.logins && accessDetails.logins.length > 0));
 
   const handleCopyToClipboard = (text: string, fieldName: string) => {
     if (!text) return;
@@ -65,7 +73,6 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
   };
   
   const handleEditClick = () => {
-    // Reset form state to match current data when editing starts
     setEditLink(accessDetails?.link || '');
     setEditLogins(accessDetails?.logins || []);
     setIsEditing(true);
@@ -73,7 +80,6 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
 
   const handleCancelClick = () => {
     setIsEditing(false);
-    // Optionally reset changes if needed, but useEffect already handles this on data change
   };
 
   const handleSave = () => {
@@ -84,22 +90,20 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
     
     setIsSaving(true);
     
-    const dataToSave: Omit<BankAccessDetails, 'id'> = {
-      bankId: bank.id,
+    const dataToSave: Omit<AccessDetails, 'id'> = {
       link: editLink,
-      logins: editLogins.filter(l => l.type.trim() || l.username.trim()), // Filter out empty logins
+      logins: editLogins.filter(l => l.type.trim() || l.username.trim()),
       updatedAt: serverTimestamp(),
     };
 
     setDocumentNonBlocking(accessDetailsRef, dataToSave, { merge: true });
 
-    toast({ title: 'Sucesso!', description: `Acessos para ${bank.name} foram salvos.` });
+    toast({ title: 'Sucesso!', description: `Acessos para ${item.name} foram salvos.` });
     setIsSaving(false);
     setIsEditing(false);
   };
 
-  // Login form handlers
-   const handleAddNewLogin = () => {
+  const handleAddNewLogin = () => {
     setEditLogins([...editLogins, { type: '', username: '', password: '' }]);
   };
   
@@ -114,19 +118,16 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
     setEditLogins(updatedLogins);
   };
 
-
   const renderViewMode = () => (
      <div className="p-4 space-y-4">
-        {accessDetails && (accessDetails.link || accessDetails.logins?.length) ? (
+        {hasDetails ? (
             <>
                 {accessDetails.link && (
-                    <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                         <LinkIcon className="h-4 w-4 text-muted-foreground" />
                         <a href={accessDetails.link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
                         {accessDetails.link}
                         </a>
-                    </div>
                     </div>
                 )}
                 {accessDetails.logins?.map((login, index) => (
@@ -162,12 +163,12 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
             </>
         ) : (
             <p className="text-center text-sm text-muted-foreground py-2">
-                Nenhum acesso salvo para este banco.
+                Nenhum acesso salvo.
             </p>
         )}
         <Button variant="outline" size="sm" onClick={handleEditClick}>
             <Edit className="mr-2 h-4 w-4" /> 
-            {accessDetails && (accessDetails.link || accessDetails.logins?.length) ? 'Editar Acessos' : 'Adicionar Acessos'}
+            {hasDetails ? 'Editar Acessos' : 'Adicionar Acessos'}
         </Button>
     </div>
   );
@@ -178,7 +179,7 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
             <Label htmlFor="bank-link">Link do Portal</Label>
             <Input
             id="bank-link"
-            placeholder="https://portal.banco.com.br"
+            placeholder="https://portal.exemplo.com.br"
             value={editLink}
             onChange={e => setEditLink(e.target.value)}
             />
@@ -226,15 +227,15 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
   );
 
   return (
-    <AccordionItem value={bank.id}>
+    <AccordionItem value={item.id}>
       <AccordionTrigger>
         <div className="flex items-center gap-3">
-          {bank.logoUrl ? (
-            <NextImage src={bank.logoUrl} alt={`${bank.name} logo`} width={24} height={24} className="h-6 w-6 object-contain" />
+          {item.logoUrl ? (
+            <NextImage src={item.logoUrl} alt={`${item.name} logo`} width={24} height={24} className="h-6 w-6 object-contain" />
           ) : (
             <Landmark className="h-6 w-6 text-muted-foreground" />
           )}
-          <span className="font-medium">{bank.name}</span>
+          <span className="font-medium">{item.name}</span>
         </div>
       </AccordionTrigger>
       <AccordionContent>
@@ -248,6 +249,7 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
         ) : (
           renderViewMode()
         )}
+        {children}
       </AccordionContent>
     </AccordionItem>
   );
@@ -256,29 +258,66 @@ function BankAccessItem({ bank }: { bank: BankMaster }) {
 export default function BankAccessView() {
   const { firestore } = useFirebase();
 
-  const bankStatusesCollectionRef = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null),
-    [firestore]
-  );
+  // Fetch all master data
+  const banksQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'bankStatuses'), orderBy('name')) : null), [firestore]);
+  const { data: allBanks, isLoading: isLoadingBanks } = useCollection<BankMaster>(banksQuery);
 
-  const { data: banks, isLoading } = useCollection<BankMaster>(bankStatusesCollectionRef);
+  const promotorasQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'promotoras'), orderBy('name')) : null), [firestore]);
+  const { data: promotoras, isLoading: isLoadingPromotoras } = useCollection<Promotora>(promotorasQuery);
+
+  const { promotorasWithBanks, independentBanks } = useMemo(() => {
+    if (!allBanks || !promotoras) {
+      return { promotorasWithBanks: [], independentBanks: [] };
+    }
+    const promotoraMap = new Map(promotoras.map(p => [p.id, { ...p, banks: [] as BankMaster[] }]));
+    const independent: BankMaster[] = [];
+
+    allBanks.forEach(bank => {
+      if (bank.promotoraId && promotoraMap.has(bank.promotoraId)) {
+        promotoraMap.get(bank.promotoraId)!.banks.push(bank);
+      } else {
+        independent.push(bank);
+      }
+    });
+
+    return {
+      promotorasWithBanks: Array.from(promotoraMap.values()).filter(p => p.banks.length > 0),
+      independentBanks: independent,
+    };
+  }, [allBanks, promotoras]);
+
+  const isLoading = isLoadingBanks || isLoadingPromotoras;
+  
+  const renderBankList = (banks: BankMaster[]) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 p-4 border-t">
+        {banks.map(bank => (
+             <Badge key={bank.id} variant="secondary" className="flex items-center gap-2 py-1">
+                {bank.logoUrl ? (
+                    <NextImage src={bank.logoUrl} alt={bank.name} width={16} height={16} className="h-4 w-4 object-contain" />
+                ) : (
+                    <Landmark className="h-4 w-4" />
+                )}
+                <span className='truncate'>{bank.name}</span>
+            </Badge>
+        ))}
+    </div>
+  )
+
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <div className='flex items-center gap-3'>
-            <KeyRound className="h-6 w-6 text-primary" />
-            <div>
-              <CardTitle>Meus Acessos aos Bancos</CardTitle>
-              <CardDescription>
-                Gerencie seus links e credenciais de acesso. Estas informações são privadas e visíveis apenas para você.
-              </CardDescription>
-            </div>
+        <div className="flex items-center gap-3">
+          <KeyRound className="h-6 w-6 text-primary" />
+          <div>
+            <CardTitle>Meus Acessos</CardTitle>
+            <CardDescription>
+              Gerencie seus links e credenciais de acesso. Estas informações são privadas e visíveis apenas para você.
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         {isLoading && (
           <div className="space-y-2 p-4">
             <Skeleton className="h-12 w-full" />
@@ -286,19 +325,39 @@ export default function BankAccessView() {
             <Skeleton className="h-12 w-full" />
           </div>
         )}
-        {!isLoading && banks && banks.length > 0 ? (
-          <Accordion type="single" collapsible className="w-full">
-            {banks?.map((bank) => (
-              <BankAccessItem key={bank.id} bank={bank} />
-            ))}
-          </Accordion>
-        ) : (
-          !isLoading && (
-            <p className="text-muted-foreground text-sm p-4 text-center">
-              Nenhum banco cadastrado no sistema. Vá para a página 'Bancos' para começar.
-            </p>
-          )
+        {!isLoading && promotorasWithBanks.length > 0 && (
+           <div className='p-4'>
+             <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-muted-foreground">
+                <Building className="h-5 w-5" />
+                Acessos por Promotora
+             </div>
+             <Accordion type="multiple" className="w-full">
+                {promotorasWithBanks.map(p => (
+                    <AccessItem key={p.id} item={p} collectionPath="promotoraAccessDetails">
+                       {p.banks.length > 0 && renderBankList(p.banks)}
+                    </AccessItem>
+                ))}
+            </Accordion>
+           </div>
         )}
+         {!isLoading && independentBanks.length > 0 && (
+           <div className='p-4'>
+             <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-muted-foreground">
+                <Users className="h-5 w-5" />
+                Bancos Independentes
+             </div>
+            <Accordion type="multiple" className="w-full">
+                {independentBanks.map(bank => (
+                    <AccessItem key={bank.id} item={bank} collectionPath="bankAccessDetails" />
+                ))}
+            </Accordion>
+           </div>
+        )}
+         {!isLoading && promotorasWithBanks.length === 0 && independentBanks.length === 0 && (
+             <p className="text-muted-foreground text-sm p-4 text-center">
+              Nenhum banco ou promotora cadastrado no sistema.
+            </p>
+         )}
       </CardContent>
     </Card>
   );

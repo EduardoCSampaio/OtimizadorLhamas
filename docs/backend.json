@@ -8,23 +8,13 @@
       "properties": {
         "id": {
           "type": "string",
-<<<<<<< HEAD
-<<<<<<< HEAD
           "description": "Unique identifier for the User entity. (Same as Firebase Auth UID)"
-=======
-          "description": "Unique identifier for the User entity."
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
-          "description": "Unique identifier for the User entity. (Same as Firebase Auth UID)"
->>>>>>> 0af121b (File changes)
         },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
         },
-<<<<<<< HEAD
-<<<<<<< HEAD
         "displayName": {
           "type": "string",
           "description": "Display name of the user."
@@ -36,37 +26,11 @@
             "master",
             "user"
           ]
-<<<<<<< HEAD
-=======
-        "firstName": {
-=======
-        "displayName": {
->>>>>>> 0af121b (File changes)
-          "type": "string",
-          "description": "Display name of the user."
-        },
-        "role": {
-          "type": "string",
-<<<<<<< HEAD
-          "description": "Last name of the user."
-        },
-        "roleId": {
-          "type": "string",
-          "description": "Reference to Role. (Relationship: User 1:1 Role)"
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
-          "description": "User role, e.g., 'admin', 'user'.",
-          "enum": ["master", "user"]
->>>>>>> 0af121b (File changes)
-=======
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
         }
       },
       "required": [
         "id",
         "email",
-<<<<<<< HEAD
-<<<<<<< HEAD
         "role"
       ]
     },
@@ -115,21 +79,17 @@
           "type": "string",
           "description": "URL for the bank's logo."
         },
+        "customId": {
+          "type": "string",
+          "description": "Optional custom identifier for the bank."
+        },
         "promotoraId": {
             "type": "string",
             "description": "Optional foreign key to the Promotora entity."
         },
         "categories": {
           "type": "array",
-<<<<<<< HEAD
-<<<<<<< HEAD
           "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Inserção, Sem Info).",
-=======
-          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Custom).",
->>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
-=======
-          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Inserção, Sem Info).",
->>>>>>> a3e73ad (Nem todos os bancos, fazemos a inserção de dados, isso também seria bom)
           "items": {
             "type": "string",
             "enum": [
@@ -255,29 +215,24 @@
         "userEmail",
         "type"
       ]
-<<<<<<< HEAD
     },
-    "BankAccessDetails": {
+    "AccessDetails": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BankAccessDetails",
+      "title": "AccessDetails",
       "type": "object",
-      "description": "Stores user-specific, private access details for a bank, like links and credentials.",
+      "description": "Stores user-specific, private access details for a bank or promotora, like links and credentials.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier, same as the bankId from bankStatuses."
-        },
-        "bankId": {
-          "type": "string",
-          "description": "The ID of the bank this access detail belongs to."
+          "description": "Unique identifier, same as the bankId or promotoraId."
         },
         "link": {
           "type": "string",
-          "description": "The URL for the bank's portal."
+          "description": "The URL for the portal."
         },
         "logins": {
           "type": "array",
-          "description": "A list of login credentials for the bank.",
+          "description": "A list of login credentials.",
           "items": {
             "type": "object",
             "properties": {
@@ -305,147 +260,13 @@
       },
       "required": [
         "id",
-        "bankId",
-        "updatedAt"
-=======
-        "firstName",
-        "lastName",
-        "roleId"
-=======
-        "role"
->>>>>>> 0af121b (File changes)
-      ]
-    },
-    "BankStatus": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BankStatus",
-      "type": "object",
-      "description": "Represents the status of a bank proposal insertion for a specific user.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the bank."
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "URL for the bank's logo."
-        },
-        "categories": {
-          "type": "array",
-          "description": "Categories of the bank (e.g., CLT, FGTS, GOV, INSS, Sem Info).",
-          "items": {
-            "type": "string",
-            "enum": [
-              "CLT",
-              "FGTS",
-              "GOV",
-              "INSS",
-              "Sem Info"
-            ]
-          }
-        },
-        "status": {
-          "type": "string",
-          "description": "Current status of the proposal insertion.",
-          "enum": [
-            "Pendente",
-            "Concluído"
-          ]
-        },
-        "insertionDate": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time",
-          "description": "Timestamp when the proposal was marked as 'Concluído'."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp when the bank status was created."
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of the last update."
-        }
-      },
-<<<<<<< HEAD
-<<<<<<< HEAD
-      "required": [
-        "id",
-        "name",
-        "permissions"
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-      ]
-=======
-      "required": ["name", "category", "status", "createdAt", "updatedAt"]
->>>>>>> 0af121b (File changes)
-=======
-      "required": [
-        "name",
-        "categories",
-        "createdAt",
         "updatedAt"
       ]
-<<<<<<< HEAD
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
-=======
-    },
-    "CLTRule": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CLTRule",
-      "type": "object",
-      "description": "Represents a specific business rule for CLT calculations or validations, associated with a specific bank.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CLT Rule."
-        },
-        "ruleName": {
-          "type": "string",
-          "description": "The name or title of the rule (e.g., 'Tempo de Admissão')."
-        },
-        "ruleValue": {
-          "type": "string",
-          "description": "The value or condition for the rule (e.g., '6 meses')."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp when the rule was created."
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of the last update."
-        }
-      },
-      "required": [
-        "id",
-        "ruleName",
-        "ruleValue",
-        "createdAt",
-        "updatedAt"
-      ]
->>>>>>> d71a7cb (Foi, agora vamos seguir para criação de mais coisas, vamos criar as "Reg)
-=======
->>>>>>> ae954fa (Em prioridades ali, temos as prioridades dos bancos agora salvas, poderi)
     }
   },
   "auth": {
     "providers": [
-<<<<<<< HEAD
-<<<<<<< HEAD
       "password"
-=======
-      "password",
-      "anonymous"
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
-      "password"
->>>>>>> 0af121b (File changes)
     ]
   },
   "firestore": {
@@ -457,22 +278,13 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-<<<<<<< HEAD
-<<<<<<< HEAD
           "description": "Stores user profile information, including their role. Secured by requiring `request.auth.uid == userId`.",
-=======
-          "description": "Stores user profile information. Secured by requiring `request.auth.uid == userId`.",
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
-          "description": "Stores user profile information, including their role. Secured by requiring `request.auth.uid == userId`.",
->>>>>>> 0af121b (File changes)
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user."
             }
           ]
-<<<<<<< HEAD
         },
         "subcollections": [
           {
@@ -494,15 +306,31 @@
           {
             "path": "/bankAccessDetails/{accessId}",
             "definition": {
-              "entityName": "BankAccessDetails",
+              "entityName": "AccessDetails",
               "schema": {
-                "$ref": "#/backend/entities/BankAccessDetails"
+                "$ref": "#/backend/entities/AccessDetails"
               },
               "description": "Stores user-specific, private access details for each bank. A user can only access their own details.",
               "params": [
                 {
                   "name": "accessId",
-                  "description": "The unique identifier for the bank access detail entry, matching the bankStatusId."
+                  "description": "The unique identifier for the bank access detail entry, matching the bankId."
+                }
+              ]
+            }
+          },
+           {
+            "path": "/promotoraAccessDetails/{accessId}",
+            "definition": {
+              "entityName": "AccessDetails",
+              "schema": {
+                "$ref": "#/backend/entities/AccessDetails"
+              },
+              "description": "Stores user-specific, private access details for each promotora. A user can only access their own details.",
+              "params": [
+                {
+                  "name": "accessId",
+                  "description": "The unique identifier for the promotora access detail entry, matching the promotoraId."
                 }
               ]
             }
@@ -521,38 +349,17 @@
             {
               "name": "promotoraId",
               "description": "The unique identifier for the promotora."
-=======
-        }
-      },
-      {
-        "path": "/bankStatuses/{bankStatusId}",
-        "definition": {
-          "entityName": "BankStatus",
-          "schema": {
-            "$ref": "#/backend/entities/BankStatus"
-          },
-<<<<<<< HEAD
-<<<<<<< HEAD
-          "description": "Stores role definitions and associated permissions. Access restricted to administrative users.",
-          "params": [
-            {
-              "name": "roleId",
-              "description": "The unique identifier for the role."
->>>>>>> 75fb1c4 (Set up a Firebase backend)
             }
           ]
         }
       },
       {
-<<<<<<< HEAD
         "path": "/bankStatuses/{bankStatusId}",
         "definition": {
           "entityName": "BankStatus",
           "schema": {
             "$ref": "#/backend/entities/BankStatus"
           },
-=======
->>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
           "description": "Stores the master list of banks available in the system. Writable only by 'master' role, readable by all authenticated users.",
           "params": [
             {
@@ -581,76 +388,6 @@
         ]
       },
       {
-<<<<<<< HEAD
-        "path": "/activityLogs/{logId}",
-        "definition": {
-          "entityName": "ActivityLog",
-          "schema": {
-            "$ref": "#/backend/entities/ActivityLog"
-          },
-          "description": "Stores a log of all important activities within the application. Readable by all authenticated users, writable only via server-side logic (enforced by security rules allowing only create).",
-          "params": [
-            {
-              "name": "logId",
-              "description": "The unique identifier for the log entry."
-=======
-        "path": "/user_roles/{userId}",
-        "definition": {
-          "entityName": "Role",
-          "schema": {
-            "$ref": "#/backend/entities/Role"
-          },
-          "description": "Stores role assignments for each user. Existence of a document grants the role to the user. Used for DBAC.",
-=======
-          "description": "Stores the checklist of bank proposal statuses for a specific user. Each user can only access their own checklist.",
->>>>>>> 0af121b (File changes)
-=======
-        "path": "/users/{userId}/bankChecklists/{checklistId}",
-        "definition": {
-          "entityName": "BankStatus",
-          "schema": {
-            "$ref": "#/backend/entities/BankStatus"
-          },
-          "description": "Stores the user-specific checklist status for each bank. Each user can only access their own checklist.",
->>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-<<<<<<< HEAD
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
-            },
-            {
-<<<<<<< HEAD
-              "name": "bankStatusId",
-              "description": "The unique identifier for the bank status entry."
->>>>>>> 0af121b (File changes)
-            }
-          ]
-        }
-      },
-      {
-        "path": "/cltRules/{ruleId}",
-        "definition": {
-          "entityName": "CLTRule",
-          "schema": {
-            "$ref": "#/backend/entities/CLTRule"
-          },
-          "description": "Stores global CLT rules. Writable only by 'master' role, readable by all authenticated users.",
-          "params": [
-            {
-              "name": "ruleId",
-              "description": "The unique identifier for the CLT rule."
-=======
-              "name": "checklistId",
-              "description": "The unique identifier for the bank checklist entry, likely matching the bankStatusId."
->>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)
-            }
-          ]
-        }
-      },
-      {
         "path": "/activityLogs/{logId}",
         "definition": {
           "entityName": "ActivityLog",
@@ -666,27 +403,6 @@
           ]
         }
       }
-<<<<<<< HEAD
-<<<<<<< HEAD
-    ]
-  }
-<<<<<<< HEAD
-<<<<<<< HEAD
-}
-=======
-    ],
-    "reasoning": "This Firestore structure prioritizes security and scalability for the Bank Proposal Automation system, focusing on the user and role management aspects. It leverages path-based ownership and dedicated collections for roles to simplify security rules and ensure authorization independence.\n\n1.  **Users Collection:** The `/users/{userId}` collection stores user profiles. This uses path-based ownership. Each user document is secured by requiring `request.auth.uid == userId`. This structure is secure and efficient for ownership-based security rules.\n2.  **Roles Collection:** The `/roles/{roleId}` collection stores role definitions and their associated permissions.  Access to this collection should be restricted to administrative users.\n3. **User Roles:** `/user_roles/{userId}` stores the role assignments for each user. The existence of a document in this collection grants a user the specified role. This is an example of DBAC using existence checks for simple role assignment. This ensures authorization independence and avoids complex rules based on data content.\n\nThis structure avoids hierarchical authorization dependencies (`get()`) by relying on the `request.auth.uid` and existence checks in dedicated collections. It supports secure `list` operations (QAPs) by segregating user data and role assignments into distinct collections with clear security postures. The structure also facilitates the integrity of ownership by enforcing strict path-based ownership for user profiles."
-  }
-}
->>>>>>> 75fb1c4 (Set up a Firebase backend)
-=======
     ]
   }
 }
->>>>>>> 0af121b (File changes)
-=======
-}
->>>>>>> 91bbab7 (Ok ok, agora vamos as melhorias que eu disse, configuração por usuário,)
-=======
-}
->>>>>>> e72cfff (Nas regras clt, precisamos poder especificar o banco também, exemplo:)

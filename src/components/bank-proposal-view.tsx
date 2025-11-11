@@ -27,8 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { BankChecklistStatus, BankMaster, Promotora } from '@/lib/types';
-import { CheckCircle, History, Landmark, RefreshCw, Building, Search, Filter, FileDown, KeyRound } from 'lucide-react';
+import type { BankChecklistStatus, BankMaster, Promotora, BankCategory } from '@/lib/types';
+import { CheckCircle, History, Landmark, RefreshCw, Building, Search, Filter, FileDown } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -557,7 +557,7 @@ export default function BankProposalView() {
                         <div className="flex flex-col">
                           <span>{bank.name}</span>
                            {bank.customId && (
-                                <span className="text-xs text-muted-foreground font-mono">
+                                <span className="text-xs text-muted-foreground">
                                     (ID: {bank.customId})
                                 </span>
                            )}

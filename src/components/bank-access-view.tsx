@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { KeyRound, Landmark, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle, Search, Bot } from 'lucide-react';
+import { KeyRound, Landmark, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle, Search, Bot, Clipboard, Eye, EyeOff, Link as LinkIcon } from 'lucide-react';
 import { useCollection, useFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import type { BankMaster, AccessDetails, LoginCredential, Promotora } from '@/lib/types';
@@ -49,6 +49,7 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   const [editIsRobo, setEditIsRobo] = useState(false);
   const [editRoboResponsible, setEditRoboResponsible] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
 
   const accessDetailsRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid, collectionPath, item.id) : null),
@@ -78,7 +79,6 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   const hasCredentials = accessDetails && accessDetails.logins && accessDetails.logins.length > 0;
   
   const handleEditClick = () => {
-    // Ensure we have the latest data before editing
     const currentDetails = accessDetails || { logins: [] };
     setEditLink(currentDetails.link || '');
     setEditLogins(JSON.parse(JSON.stringify(currentDetails.logins || [])));
@@ -133,11 +133,64 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
     setEditLogins(updatedLogins);
   };
 
+  const handleCopyToClipboard = (text: string, fieldName: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copiado!', description: `${fieldName} copiado para a área de transferência.` });
+  };
+
+  const toggleShowPassword = (index: number) => {
+    setShowPasswords(prev => ({ ...prev, [index]: !prev[index] }));
+  };
+
   const renderViewMode = () => (
      <div className="p-4 space-y-4">
-        <p className="text-center text-sm text-muted-foreground py-2">
-            {hasDetails ? 'As informações de acesso foram salvas.' : 'Nenhum acesso salvo.'}
-        </p>
+        {!hasDetails ? (
+           <p className="text-center text-sm text-muted-foreground py-2">
+              Nenhum acesso salvo.
+            </p>
+        ) : (
+          <div className="space-y-4">
+            {accessDetails.link && (
+                <div className="flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                    <a href={accessDetails.link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
+                    {accessDetails.link}
+                    </a>
+                </div>
+            )}
+            {accessDetails.logins?.map((login, index) => (
+                <div key={index} className="space-y-2 p-3 border rounded-md">
+                <p className="text-sm font-semibold">{login.type}</p>
+                <div className='flex flex-col gap-2'>
+                    <div>
+                        <p className="text-xs text-muted-foreground">Usuário</p>
+                        <div className="flex items-center gap-1">
+                            <p className="font-mono text-sm truncate">{login.username}</p>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.username, 'Usuário')}>
+                                <Clipboard className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground">Senha</p>
+                        <div className="flex items-center gap-1">
+                            <p className="font-mono text-sm">
+                            {showPasswords[index] ? login.password : '••••••••'}
+                            </p>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => toggleShowPassword(index)}>
+                                {showPasswords[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleCopyToClipboard(login.password || '', 'Senha')}>
+                            <Clipboard className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            ))}
+        </div>
+        )}
         <Button variant="outline" size="sm" onClick={handleEditClick}>
             <Edit className="mr-2 h-4 w-4" /> 
             {hasDetails ? 'Editar Acessos' : 'Adicionar Acessos'}

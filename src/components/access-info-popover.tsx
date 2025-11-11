@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Popover,
   PopoverContent,
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useDoc, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { AccessDetails, BankMaster } from '@/lib/types';
-import { KeyRound, Link as LinkIcon, Clipboard, Eye, EyeOff, X } from 'lucide-react';
+import { KeyRound, Link as LinkIcon, Clipboard, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMemoFirebase } from '@/firebase/provider';
 import { Skeleton } from './ui/skeleton';

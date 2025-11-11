@@ -27,8 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { BankChecklistStatus, BankMaster, BankCategory, Promotora } from '@/lib/types';
-import { CheckCircle, History, Landmark, RefreshCw, Building, Search, Filter, FileDown } from 'lucide-react';
+import type { BankChecklistStatus, BankMaster, Promotora } from '@/lib/types';
+import { CheckCircle, History, Landmark, RefreshCw, Building, Search, Filter, FileDown, KeyRound } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,6 +52,7 @@ import {
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
+import AccessInfoPopover from './access-info-popover';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: UserOptions) => jsPDF;
@@ -532,6 +533,7 @@ export default function BankProposalView() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]"></TableHead>
                   <TableHead>Banco</TableHead>
                   <TableHead>Outras Categorias</TableHead>
                   <TableHead>Status e Data da Última Atualização</TableHead>
@@ -542,6 +544,9 @@ export default function BankProposalView() {
               <TableBody>
                 {group.banks.map(bank => (
                   <TableRow key={bank.id}>
+                    <TableCell>
+                      <AccessInfoPopover bank={bank} />
+                    </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         {bank.logoUrl ? (

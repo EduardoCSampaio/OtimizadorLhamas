@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { KeyRound, Landmark, Link as LinkIcon, Clipboard, Eye, EyeOff, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle, Search, Bot } from 'lucide-react';
+import { KeyRound, Landmark, Edit, Save, PlusCircle, Trash2, X, Building, Users, AlertTriangle, Search, Bot } from 'lucide-react';
 import { useCollection, useFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import type { BankMaster, AccessDetails, LoginCredential, Promotora } from '@/lib/types';
@@ -27,7 +27,6 @@ import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from './ui/badge';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useMemoFirebase } from '@/firebase/provider';
 
 
@@ -41,7 +40,6 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
 
   // Edit state
   const [editLink, setEditLink] = useState('');
@@ -78,24 +76,16 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
   
   const hasDetails = accessDetails && (accessDetails.link || (accessDetails.logins && accessDetails.logins.length > 0) || accessDetails.requiresToken || accessDetails.isRobo);
   const hasCredentials = accessDetails && accessDetails.logins && accessDetails.logins.length > 0;
-
-  const handleCopyToClipboard = (text: string, fieldName: string) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    toast({ title: 'Copiado!', description: `${fieldName} copiado para a área de transferência.` });
-  };
-
-  const toggleShowPassword = (index: number) => {
-    setShowPasswords(prev => ({ ...prev, [index]: !prev[index] }));
-  };
   
   const handleEditClick = () => {
-    setEditLink(accessDetails?.link || '');
-    setEditLogins(JSON.parse(JSON.stringify(accessDetails?.logins || [])));
-    setEditRequiresToken(accessDetails?.requiresToken || false);
-    setEditTokenResponsible(accessDetails?.tokenResponsible || '');
-    setEditIsRobo(accessDetails?.isRobo || false);
-    setEditRoboResponsible(accessDetails?.roboResponsible || '');
+    // Ensure we have the latest data before editing
+    const currentDetails = accessDetails || { logins: [] };
+    setEditLink(currentDetails.link || '');
+    setEditLogins(JSON.parse(JSON.stringify(currentDetails.logins || [])));
+    setEditRequiresToken(currentDetails.requiresToken || false);
+    setEditTokenResponsible(currentDetails.tokenResponsible || '');
+    setEditIsRobo(currentDetails.isRobo || false);
+    setEditRoboResponsible(currentDetails.roboResponsible || '');
     setIsEditing(true);
   };
 
@@ -145,52 +135,9 @@ function AccessItem({ item, collectionPath, children }: AccessItemProps) {
 
   const renderViewMode = () => (
      <div className="p-4 space-y-4">
-        {hasDetails ? (
-            <>
-                {accessDetails.link && (
-                    <div className="flex items-center gap-2">
-                        <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                        <a href={accessDetails.link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
-                        {accessDetails.link}
-                        </a>
-                    </div>
-                )}
-                {accessDetails.logins?.map((login, index) => (
-                    <div key={index} className="space-y-2 p-3 border rounded-md">
-                    <p className="text-sm font-semibold">{login.type}</p>
-                    <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
-                        <div className='flex-1'>
-                        <p className="text-xs text-muted-foreground">Usuário</p>
-                        <div className="flex items-center gap-2">
-                            <p className="font-mono text-sm">{login.username}</p>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopyToClipboard(login.username, 'Usuário')}>
-                                <Clipboard className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        </div>
-                        <div className='flex-1'>
-                        <p className="text-xs text-muted-foreground">Senha</p>
-                        <div className="flex items-center gap-2">
-                            <p className="font-mono text-sm">
-                            {showPasswords[index] ? login.password : '••••••••'}
-                            </p>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleShowPassword(index)}>
-                                {showPasswords[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopyToClipboard(login.password || '', 'Senha')}>
-                            <Clipboard className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-                ))}
-            </>
-        ) : (
-            <p className="text-center text-sm text-muted-foreground py-2">
-                Nenhum acesso salvo.
-            </p>
-        )}
+        <p className="text-center text-sm text-muted-foreground py-2">
+            {hasDetails ? 'As informações de acesso foram salvas.' : 'Nenhum acesso salvo.'}
+        </p>
         <Button variant="outline" size="sm" onClick={handleEditClick}>
             <Edit className="mr-2 h-4 w-4" /> 
             {hasDetails ? 'Editar Acessos' : 'Adicionar Acessos'}
@@ -437,9 +384,9 @@ export default function BankAccessView() {
             <div className="flex items-center gap-3">
             <KeyRound className="h-6 w-6 text-primary" />
             <div>
-                <CardTitle>Meus Acessos</CardTitle>
+                <CardTitle>Configurar Acessos</CardTitle>
                 <CardDescription>
-                Gerencie seus links e credenciais de acesso. Estas informações são privadas e visíveis apenas para você.
+                Gerencie seus links e credenciais de acesso. As informações salvas aqui aparecerão no seu checklist diário.
                 </CardDescription>
             </div>
             </div>

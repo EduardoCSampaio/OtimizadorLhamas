@@ -105,5 +105,3 @@ export interface KnowledgeBaseEntry {
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
-
-    

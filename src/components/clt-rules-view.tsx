@@ -270,7 +270,7 @@ export default function CltRulesView({ userRole }: CltRulesViewProps) {
             </div>
             <Button variant="outline" size="sm" onClick={() => handleExportAllToPDF(cltBanks)} disabled={isExporting}>
               <FileDown className="mr-2 h-4 w-4" />
-              {isExporting ? 'Exportando...' : 'Exportar Tudo (PDF)'}
+              {isExporting ? 'Exportando...' : 'Exportar Comparativo (PDF)'}
             </Button>
           </div>
         </CardHeader>

@@ -244,7 +244,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         }
 
         docPDF.setFontSize(16);
-        docPDF.text(`Regras CLT`, pageWidth / 2, startY, { align: 'center' });
+        docPDF.text(`Folha de Rosto - Regras CLT`, pageWidth / 2, startY, { align: 'center' });
       };
 
       const addFooter = (data: any) => {
@@ -272,7 +272,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
         margin: { top: headerHeight }
       });
       
-      const fileName = `RegrasCLT_${bank.name.toLowerCase().replace(/ /g, '_')}_${format(new Date(), 'dd-MM-yyyy_HH-mm-ss')}.pdf`;
+      const fileName = `FolhaRosto_${bank.name.toLowerCase().replace(/ /g, '_')}_${format(new Date(), 'dd-MM-yyyy')}.pdf`;
       docPDF.save(fileName);
   }
 
@@ -305,7 +305,7 @@ export default function CltRulesManagerModal({ bank, isOpen, onClose, userRole }
               </span>
               <Button variant="outline" size="sm" onClick={handleExportToPDF} disabled={isExporting}>
                 <FileDown className="mr-2 h-4 w-4" />
-                {isExporting ? 'Exportando...' : 'Exportar PDF'}
+                {isExporting ? 'Exportando...' : 'Exportar Folha de Rosto'}
               </Button>
             </div>
           </DialogDescription>
